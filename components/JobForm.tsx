@@ -79,21 +79,25 @@ export default function JobForm() {
     getValues,
   } = useForm<JobInput>({
     resolver: zodResolver(jobSchema),
-    defaultValues: searchParams ? {
-      title: searchParams.get('title') || '',
-      description: searchParams.get('description') || '',
-      province: searchParams.get('province') || '',
-      city: searchParams.get('city') || '',
-      category: searchParams.get('category') || undefined,
-      available_date: searchParams.get('available_date') || new Date().toISOString().slice(0, 10),
-      available_hours: searchParams.get('available_hours') || '',
-      rate: searchParams.get('rate') || '',
-      phone: '',
-      email: '',
-      terms: false,
-      rodo: false,
-      hp: ''
-    } : undefined,
+    defaultValues: searchParams ? (() => {
+      const allowedCategories = ['Transport','Ogród','Budowa','Magazyn','Inne'];
+      const cat = searchParams.get('category');
+      return {
+        title: searchParams.get('title') || '',
+        description: searchParams.get('description') || '',
+        province: searchParams.get('province') || '',
+        city: searchParams.get('city') || '',
+        category: allowedCategories.includes(cat || '') ? cat : undefined,
+        available_date: searchParams.get('available_date') || new Date().toISOString().slice(0, 10),
+        available_hours: searchParams.get('available_hours') || '',
+        rate: searchParams.get('rate') || '',
+        phone: '',
+        email: '',
+        terms: false,
+        rodo: false,
+        hp: ''
+      };
+    })() : undefined,
   });
 
   const onFormSubmit = async (data: JobInput) => {
