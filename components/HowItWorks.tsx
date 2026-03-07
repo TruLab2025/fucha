@@ -29,8 +29,8 @@ export default function HowItWorks() {
       <div className="mt-10 flex flex-col md:flex-row justify-center items-start gap-10">
         {steps.map(step => (
           <div key={step.num} className="flex flex-col items-center max-w-xs text-center">
-            <div className="w-24 h-24 flex items-center justify-center rounded-full shadow-lg bg-gradient-to-br from-blue-400 via-green-300 to-yellow-200 border-4 border-white">
-              <span className="text-5xl drop-shadow-lg">{step.icon}</span>
+            <div className="w-24 h-24 flex items-center justify-center rounded-full shadow-md bg-white border-2 border-blue-400">
+              <span className="text-5xl">{step.icon}</span>
             </div>
             <h3 className="mt-4 font-semibold text-lg">{step.title}</h3>
             <p className="mt-2 text-sm text-gray-600">{step.desc}</p>
