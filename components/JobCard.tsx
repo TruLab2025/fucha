@@ -36,12 +36,24 @@ export default function JobCard({ job }: Props) {
           <p className="mt-2 font-medium text-primary">{job.rate}</p>
         </div>
         <button
-          className="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700"
-          onClick={() => setOpen(true)}
+          className="mt-4 px-4 py-2 bg-blue-100 text-blue-800 rounded-lg hover:bg-blue-200"
+          onClick={() => {
+            // Przekieruj do /add z query stringiem z danymi tej fuchy
+            const params = new URLSearchParams({
+              title: job.title || '',
+              description: job.description || '',
+              province: job.province || '',
+              city: job.city || '',
+              category: job.category || '',
+              available_date: job.available_date || '',
+              available_hours: job.available_hours || '',
+              rate: job.rate || ''
+            }).toString();
+            window.location.href = `/add?${params}`;
+          }}
         >
-          Napisz
+          Duplikuj fuchę
         </button>
-        {open && <ContactModal listing={job} onClose={() => setOpen(false)} />}
       </div>
     );
   }
