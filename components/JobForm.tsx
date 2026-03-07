@@ -81,13 +81,14 @@ export default function JobForm() {
     resolver: zodResolver(jobSchema),
     defaultValues: searchParams ? (() => {
       const allowedCategories = ['Transport','Ogród','Budowa','Magazyn','Inne'];
-      const cat = searchParams.get('category');
+      const catRaw = searchParams.get('category');
+      const cat = (typeof catRaw === 'string' && allowedCategories.includes(catRaw)) ? catRaw : undefined;
       return {
         title: searchParams.get('title') || '',
         description: searchParams.get('description') || '',
         province: searchParams.get('province') || '',
         city: searchParams.get('city') || '',
-        category: allowedCategories.includes(cat || '') ? cat : undefined,
+        category: cat,
         available_date: searchParams.get('available_date') || new Date().toISOString().slice(0, 10),
         available_hours: searchParams.get('available_hours') || '',
         rate: searchParams.get('rate') || '',
