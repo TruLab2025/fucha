@@ -82,7 +82,9 @@ export default function JobForm() {
     defaultValues: searchParams ? (() => {
       const allowedCategories = ['Transport','Ogród','Budowa','Magazyn','Inne'];
       const catRaw = searchParams.get('category');
-      const cat = (typeof catRaw === 'string' && allowedCategories.includes(catRaw)) ? catRaw : undefined;
+      const cat = (typeof catRaw === 'string' && allowedCategories.includes(catRaw))
+        ? (catRaw as 'Transport' | 'Ogród' | 'Budowa' | 'Magazyn' | 'Inne')
+        : undefined;
       return {
         title: searchParams.get('title') || '',
         description: searchParams.get('description') || '',
