@@ -151,7 +151,7 @@ export default function CompanyBrowsePage() {
       <div className="container mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold">Zobacz kto dziś szuka fuchy</h1>
+            <h1 className="text-3xl font-bold">Zobacz, kto dziś szuka fuchy</h1>
             <p className="text-gray-600">Przejrzyj i skontaktuj się z pracownikami ({displayedListings.length} wyników)</p>
           </div>
           <div className="space-y-3">
