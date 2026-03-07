@@ -6,19 +6,19 @@ const steps = [
     num: 1,
     title: 'Dodaj fuchę',
     desc: 'Wypełnij krótki formularz: tytuł, miasto, data i stawka. Ogłoszenie pokażemy od razu publicznie.',
-    icon: '📝',
+    icon: '✍️',
   },
   {
     num: 2,
     title: 'Znajdź ludzi',
     desc: 'Przeglądaj oferty lub zgłoszenia pracowników. Filtruj według miasta, kategorii i daty.',
-    icon: '🔍',
+    icon: '🧑‍🤝‍🧑',
   },
   {
     num: 3,
     title: 'Zacznij pracę',
     desc: 'Napisz wiadomość przez formularz kontaktowy, otrzymaj email i umów się na realizację.',
-    icon: '🚀',
+    icon: '💼',
   },
 ];
 
