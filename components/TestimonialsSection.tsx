@@ -36,7 +36,14 @@ const testimonials = [
 ];
 
 export default function TestimonialsSection() {
-  const perPage = 3;
+  // 1 na mobile, 3 na desktop
+  const [perPage, setPerPage] = React.useState(3);
+  React.useEffect(() => {
+    const update = () => setPerPage(window.innerWidth < 640 ? 1 : 3);
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
   // each element is an array of testimonials
   const pages: typeof testimonials[] = [];
   for (let i = 0; i < testimonials.length; i += perPage) {
@@ -110,10 +117,11 @@ export default function TestimonialsSection() {
                 {group.map((t, idx) => (
                   <div
                     key={idx}
-                    className="flex-1 bg-white p-4 rounded-xl shadow"
+                    className="flex-1 bg-white p-4 rounded-xl shadow mx-auto w-full sm:w-auto sm:min-w-[260px] max-w-xs sm:max-w-none"
+                    style={{ minWidth: '0' }}
                   >
-                    <p className="text-gray-800 text-sm">“{t.text}”</p>
-                    <p className="mt-2 font-semibold text-sm">{t.name}</p>
+                    <p className="text-gray-800 text-base sm:text-sm leading-snug">“{t.text}”</p>
+                    <p className="mt-2 font-semibold text-base sm:text-sm">{t.name}</p>
                     <p className="text-xs text-gray-500 capitalize">{t.role}</p>
                   </div>
                 ))}
