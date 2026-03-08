@@ -6,7 +6,7 @@ export default function Footer() {
     <footer className="bg-white mt-16 py-8">
       <div className="container mx-auto grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-text">
         <div>
-          <img src="/fucha24-logo.svg" alt="Fucha24 logo" width={120} height={32} className="mb-2" />
+          <img src="/fucha24.png" alt="Fucha24 logo" width={180} height={48} className="mb-2" />
           <ul className="space-y-1">
             <li><a href="#">Jak działa</a></li>
             <li><a href="#">Cennik</a></li>
