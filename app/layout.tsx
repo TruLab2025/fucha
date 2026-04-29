@@ -7,6 +7,14 @@ import Footer from '../components/Footer';
 export const metadata = {
   title: 'Fucha24',
   description: 'Platforma do krótkich zleceń',
+  robots: {
+    index: false,
+    follow: false,
+    googleBot: {
+      index: false,
+      follow: false,
+    },
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

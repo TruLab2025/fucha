@@ -16,6 +16,22 @@ const categoryIcons: Record<string, string> = {
   Inne: '➕',
 };
 
+const formatAvailability = (job: Listing) => {
+  if (!job.available_date) return '';
+
+  const start = new Date(job.available_date).toLocaleDateString('pl-PL');
+  if (job.available_to && job.available_to !== job.available_date) {
+    return `${start} - ${new Date(job.available_to).toLocaleDateString('pl-PL')}`;
+  }
+
+  return start;
+};
+
+const formatRate = (job: Listing) => {
+  if (!job.rate) return '';
+  return job.rate_type === 'daily' ? `${job.rate} zl/dzien` : `${job.rate} zl/h`;
+};
+
 export default function JobCard({ job }: Props) {
   const [open, setOpen] = useState(false);
 
@@ -31,9 +47,9 @@ export default function JobCard({ job }: Props) {
             <h3 className="text-lg font-semibold text-text">{job.title}</h3>
           </div>
           <p className="text-sm text-gray-500 mt-1">
-            {job.province}, {job.city} – {new Date(job.available_date!).toLocaleDateString('pl-PL')} ({job.available_hours}h)
+            {job.province}, {job.city} – {formatAvailability(job)}{job.rate_type !== 'daily' && job.available_hours ? ` (${job.available_hours}h)` : ''}
           </p>
-          <p className="mt-2 font-medium text-primary">{job.rate}</p>
+          <p className="mt-2 font-medium text-primary">{formatRate(job)}</p>
         </div>
         <button
           className="mt-4 px-4 py-2 bg-blue-100 text-blue-800 rounded-lg hover:bg-blue-200"
@@ -46,7 +62,9 @@ export default function JobCard({ job }: Props) {
               city: job.city || '',
               category: job.category || '',
               available_date: job.available_date || '',
+              available_to: job.available_to || '',
               available_hours: job.available_hours || '',
+              rate_type: job.rate_type || 'hourly',
               rate: job.rate || ''
             }).toString();
             window.location.href = `/add?${params}`;

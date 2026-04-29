@@ -18,12 +18,17 @@ export default function Navbar() {
             priority
           />
         </Link>
-        <div className="flex flex-row gap-1 sm:gap-2 flex-1 justify-end">
+        <div className="flex flex-row gap-1 sm:gap-2 flex-1 justify-end items-center">
+          <Link href="/#how-it-works" className="px-2 py-1 sm:px-3 sm:py-2 text-gray-700 rounded-lg hover:bg-gray-100 text-xs sm:text-base text-center whitespace-nowrap">Jak działa</Link>
+          <Link href="/#pricing" className="px-2 py-1 sm:px-3 sm:py-2 text-gray-700 rounded-lg hover:bg-gray-100 text-xs sm:text-base text-center whitespace-nowrap">Cennik</Link>
+          <Link href="/#testimonials" className="px-2 py-1 sm:px-3 sm:py-2 text-gray-700 rounded-lg hover:bg-gray-100 text-xs sm:text-base text-center whitespace-nowrap">Opinie</Link>
+          <Link href="/faq" className="px-2 py-1 sm:px-3 sm:py-2 text-gray-700 rounded-lg hover:bg-gray-100 text-xs sm:text-base text-center whitespace-nowrap">FAQ</Link>
+          <Link href="/#contact" className="px-2 py-1 sm:px-3 sm:py-2 text-gray-700 rounded-lg hover:bg-gray-100 text-xs sm:text-base text-center whitespace-nowrap">Kontakt</Link>
           <Link href="/add" className="px-2 py-1 sm:px-3 sm:py-2 bg-primary text-white rounded-lg hover:bg-blue-700 text-xs sm:text-base text-center whitespace-nowrap">
             Dodaj fuchę
           </Link>
-          <Link href="/jobs" className="px-2 py-1 sm:px-3 sm:py-2 bg-green text-white rounded-lg hover:bg-green-600 text-xs sm:text-base text-center whitespace-nowrap">
-            Przeglądaj
+          <Link href="/companies/browse" className="px-2 py-1 sm:px-3 sm:py-2 bg-green text-white rounded-lg hover:bg-green-600 text-xs sm:text-base text-center whitespace-nowrap">
+            Szukam ludzi
           </Link>
         </div>
       </div>

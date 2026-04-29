@@ -5,25 +5,37 @@ import HowItWorks from '../components/HowItWorks';
 import JobGrid from '../components/JobGrid';
 import PricingSection from '../components/PricingSection';
 import AdvantagesSection from '../components/AdvantagesSection';
+import GainsSection from '../components/GainsSection';
 import TestimonialsSection from '../components/TestimonialsSection';
 import { getListings } from '../lib/db';
 
 export default async function HomePage() {
-  const latestWorkerJobs = (await getListings({ type: 'worker' })).slice(0, 6);
+  const latestWorkerJobs = (await getListings({ type: 'worker' })).slice(0, 3);
 
   return (
-    <main>
+    <>
       <HeroSection />
-      <HowItWorks />
+      <section id="how-it-works">
+        <HowItWorks />
+      </section>
+      <section id="advantages">
+        <AdvantagesSection />
+      </section>
       <section className="py-20">
         <h2 className="text-3xl font-bold text-center">Ostatnie fuchy</h2>
         <div className="mt-8">
           <JobGrid jobs={latestWorkerJobs} />
         </div>
       </section>
-      <PricingSection />
-      <AdvantagesSection />
-      <TestimonialsSection />
-    </main>
+      <section>
+        <GainsSection />
+      </section>
+      <section id="testimonials">
+        <TestimonialsSection />
+      </section>
+      <section id="pricing">
+        <PricingSection />
+      </section>
+    </>
   );
 }

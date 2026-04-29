@@ -27,10 +27,10 @@ export async function POST(req: NextRequest) {
     if (!body.terms) {
       return NextResponse.json({ error: 'Regulamin wymagany' }, { status: 400 });
     }
-    // phone must be 9 digits (Polish number without prefix or with +48)
+    // phone must be exactly 9 digits
     const phoneDigits = body.phone.replace(/\D/g, '');
-    if (phoneDigits.length < 9) {
-      return NextResponse.json({ error: 'Telefon musi mieć minimum 9 cyfr' }, { status: 400 });
+    if (phoneDigits.length !== 9) {
+      return NextResponse.json({ error: 'Telefon musi mieć dokładnie 9 cyfr' }, { status: 400 });
     }
     // TODO: future improvement - send SMS/OTP verification to phone to prevent spam
     const data = jobSchema.parse(body);

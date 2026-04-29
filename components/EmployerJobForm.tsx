@@ -23,8 +23,8 @@ const jobOfferSchema = z.object({
     .min(1, { message: 'Telefon jest wymagany' })
     .refine((val) => {
       const digits = val.replace(/\D/g, '');
-      return digits.length >= 9 && digits.length <= 15;
-    }, { message: 'Telefon musi mieć 9-15 cyfr' }),
+      return digits.length === 9;
+    }, { message: 'Telefon musi mieć dokładnie 9 cyfr' }),
   email: z.string().email({ message: 'Email musi być poprawny' }),
   terms: z.boolean().refine(val => val === true, { message: 'Musisz zaakceptować regulamin' }),
   hp: z.string().max(0, { message: 'Honeypot' }),

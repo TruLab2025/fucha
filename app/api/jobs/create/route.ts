@@ -20,8 +20,11 @@ const workerSchema = baseSchema.extend({
   province: z.string(),
   city: z.string(),
   category: z.string(),
+  availability_mode: z.enum(['single', 'range']).optional(),
   available_date: z.string(),
-  available_hours: z.string(),
+  available_to: z.string().optional(),
+  available_hours: z.string().optional(),
+  rate_type: z.enum(['hourly', 'daily']).optional(),
   rate: z.string(),
 });
 
@@ -51,10 +54,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Regulamin wymagany' }, { status: 400 });
     }
     
-    // phone must be 9-15 digits
+    // phone must be exactly 9 digits
     const phoneDigits = body.phone.replace(/\D/g, '');
-    if (phoneDigits.length < 9 || phoneDigits.length > 15) {
-      return NextResponse.json({ error: 'Telefon musi mieć 9-15 cyfr' }, { status: 400 });
+    if (phoneDigits.length !== 9) {
+      return NextResponse.json({ error: 'Telefon musi mieć dokładnie 9 cyfr' }, { status: 400 });
     }
     
     const data = jobSchema.parse(body);

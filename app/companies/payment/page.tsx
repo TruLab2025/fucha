@@ -8,6 +8,12 @@ export default function CompanyPaymentPage() {
   const [tier, setTier] = useState<'pro' | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  const proBenefits = [
+    'Kontakty bez limitu',
+    'Pełny dostęp do numerów kontaktowych',
+    'Szybsze dotarcie do ludzi z okolicy',
+  ];
+
   useEffect(() => {
     const selectedTier = localStorage.getItem('selectedTier') as 'pro' | null;
     setTier(selectedTier);
@@ -50,7 +56,7 @@ export default function CompanyPaymentPage() {
         <div className="bg-gray-50 p-4 rounded-lg space-y-2">
           <div className="flex justify-between">
             <span className="text-gray-700">Plan:</span>
-            <span className="font-bold text-primary">PRO – kontaktów bez limitu</span>
+            <span className="font-bold text-primary">PRO – kontakty bez limitu</span>
           </div>
           <div className="flex justify-between text-lg font-bold">
             <span>Kwota:</span>
@@ -59,6 +65,18 @@ export default function CompanyPaymentPage() {
           <div className="text-sm text-gray-600 pt-2">
             Płatność powtarza się co miesiąc
           </div>
+        </div>
+
+        <div className="rounded-lg border border-green-200 bg-green-50 p-5">
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">Co odblokowujesz w PRO</p>
+          <ul className="mt-3 space-y-2 text-sm text-gray-700">
+            {proBenefits.map((benefit) => (
+              <li key={benefit} className="flex items-start gap-2">
+                <span className="text-green-600">✓</span>
+                <span>{benefit}</span>
+              </li>
+            ))}
+          </ul>
         </div>
 
         {/* Formularz płatności - symulacja */}
@@ -124,7 +142,7 @@ export default function CompanyPaymentPage() {
         </button>
 
         <p className="text-sm text-center text-gray-500">
-          Po potwierdzeniu zostaniesz przekierowany do bazy talentów
+          Po potwierdzeniu wrócisz do listy ludzi do pracy bez limitu odkryć.
         </p>
       </div>
     </div>

@@ -19,8 +19,11 @@ export interface Listing {
   province?: string;
   city?: string;
   category?: string;
+  availability_mode?: 'single' | 'range';
   available_date?: string;
+  available_to?: string;
   available_hours?: string;
+  rate_type?: 'hourly' | 'daily';
   rate?: string;
   
   // Employer fields (szukam ludzi)
@@ -36,6 +39,8 @@ export interface Listing {
 declare global {
   var demoListings: Listing[];
 }
+
+const caregivingLongDescription = 'Doświadczenie w opiece, chętny, odpowiedzialny, zarabiaj sobie. Mogę pomóc przy codziennych obowiązkach, zakupach, spacerach, podaniu leków i spokojnym towarzyszeniu w domu. Zależy mi na stałej, uczciwej współpracy i jasnych zasadach.';
 
 if (!global.demoListings) {
   global.demoListings = [];
@@ -75,7 +80,7 @@ if (!global.demoListings) {
     
     // Inne
     { id: '1015', type: 'worker', title: 'Sprzątanie biur i domów', description: 'Rzetelne sprzątanie mieszkań, biur, piwnic. Mam doświadczenie i referencje.', province: 'Mazowieckie', city: 'Warszawa', category: 'Inne', available_date: tomorrow.toISOString().split('T')[0], available_hours: '3', rate: '45', phone: '333444555', email: 'worker5@example.com', created_at: new Date().toISOString() },
-    { id: '1016', type: 'worker', title: 'Opieka nad osobami starszymi', description: 'Doświadczenie w opiece, chętny, odpowiedzialny, zarabiaj sobie.', province: 'Mazowieckie', city: 'Warszawa', category: 'Inne', available_date: nextWeek.toISOString().split('T')[0], available_hours: '4', rate: '60', phone: '666888000', email: 'worker8@example.com', created_at: new Date().toISOString() },
+    { id: '1016', type: 'worker', title: 'Opieka nad osobami starszymi', description: caregivingLongDescription, province: 'Mazowieckie', city: 'Warszawa', category: 'Inne', available_date: nextWeek.toISOString().split('T')[0], available_hours: '4', rate: '60', phone: '666888000', email: 'worker8@example.com', created_at: new Date().toISOString() },
     { id: '1017', type: 'worker', title: 'Udzielanie korepetycji - matematyka', description: 'Matematyka dla gimnazjalistów i licealistów. Doświadczenie z młodzieżą.', province: 'Łódzkie', city: 'Łódź', category: 'Inne', available_date: tomorrow.toISOString().split('T')[0], available_hours: '2', rate: '40', phone: '222111999', email: 'worker13@example.com', created_at: new Date().toISOString() },
     { id: '1018', type: 'worker', title: 'Sprzątanie po remontach', description: 'Ogólne i gruntowne sprzątanie pomieszczeń po pracach remontowych.', province: 'Wielkopolskie', city: 'Poznań', category: 'Inne', available_date: in3Days.toISOString().split('T')[0], available_hours: '5', rate: '48', phone: '888777666', email: 'worker14@example.com', created_at: new Date().toISOString() },
     { id: '1019', type: 'worker', title: 'Pomoc w przepisaniu tekstu - sekretariat', description: 'Szybkie pisanie, pisanie na maszynie nieduże teksty.', province: 'Śląskie', city: 'Katowice', category: 'Inne', available_date: nextWeek.toISOString().split('T')[0], available_hours: '3', rate: '35', phone: '666555444', email: 'worker17@example.com', created_at: new Date().toISOString() },
@@ -84,6 +89,17 @@ if (!global.demoListings) {
   
   global.demoListings = demoWorkers;
 }
+
+global.demoListings = global.demoListings.map((listing) => {
+  if (listing.type === 'worker' && listing.title === 'Opieka nad osobami starszymi') {
+    return {
+      ...listing,
+      description: caregivingLongDescription,
+    };
+  }
+
+  return listing;
+});
 
 export async function createListing(data: Omit<Listing, 'id' | 'created_at'> & Record<string, any>) {
   if (supabase) {
@@ -123,7 +139,9 @@ export async function getListings(filters?: {
       if (province) query = query.eq('province', province);
       if (city) query = query.eq('city', city);
       if (category) query = query.eq('category', category);
-      if (available_date) query = query.gte('available_date', available_date);
+      if (available_date) {
+        query = query.or(`available_to.gte.${available_date},and(available_to.is.null,available_date.gte.${available_date})`);
+      }
     }
     const { data, error } = await query;
     if (error) throw error;
@@ -137,7 +155,10 @@ export async function getListings(filters?: {
       if (province) results = results.filter(l => l.province === province);
       if (city) results = results.filter(l => l.city === city);
       if (category) results = results.filter(l => l.category === category);
-      if (available_date) results = results.filter(l => l.available_date && l.available_date >= available_date);
+      if (available_date) results = results.filter(l => {
+        const listingEnd = l.available_to || l.available_date;
+        return Boolean(listingEnd && listingEnd >= available_date);
+      });
     }
     return results;
   }

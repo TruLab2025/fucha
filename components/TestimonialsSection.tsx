@@ -26,7 +26,7 @@ const testimonials = [
   {
     name: 'Karol K.',
     role: 'ogrodnik',
-    text: 'Prosty i intuicyjny serwis, szybko dostałem odpowiedź from klienta.',
+    text: 'Prosty i intuicyjny serwis, szybko dostałem odpowiedź od klienta.',
   },
   {
     name: 'Monika Z.',
@@ -96,6 +96,9 @@ export default function TestimonialsSection() {
   return (
     <section className="py-20 bg-neutral">
       <h2 className="text-3xl font-bold text-center">Opinie użytkowników</h2>
+      <p className="mt-4 max-w-2xl mx-auto text-center text-gray-600 leading-7">
+        Użytkownicy wracają tu po prosty proces, szybki kontakt i lokalne ogłoszenia, które da się realnie zamknąć bez długiej rekrutacji.
+      </p>
       <div className="relative mt-10">
         {/* arrows removed, dragging handles navigation */}
         <div
