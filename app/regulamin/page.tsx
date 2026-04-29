@@ -71,11 +71,13 @@ export default function TermsPage() {
   return (
     <section className="py-12">
       <div className="mx-auto max-w-4xl">
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">Regulamin</p>
-        <h1 className="mt-3 text-4xl font-bold leading-tight">Przykładowy regulamin Fucha24</h1>
-        <p className="mt-4 text-gray-600 leading-7">
-          Poniższy dokument jest przykładową wersją regulaminu. Przed publikacją warto uzupełnić go o dane operatora, zasady płatności, politykę prywatności i szczegóły wymagane dla Twojego modelu działania.
-        </p>
+        <div className="mx-auto max-w-3xl text-center">
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">Regulamin</p>
+          <h1 className="mt-3 text-4xl font-bold leading-tight">Przykładowy regulamin Fucha24</h1>
+          <p className="mt-4 text-gray-600 leading-7">
+            Poniższy dokument jest przykładową wersją regulaminu. Przed publikacją warto uzupełnić go o dane operatora, zasady płatności, politykę prywatności i szczegóły wymagane dla Twojego modelu działania.
+          </p>
+        </div>
 
         <div className="mt-10 space-y-6">
           {sections.map((section) => (

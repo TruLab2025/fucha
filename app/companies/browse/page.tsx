@@ -198,15 +198,15 @@ export default function CompanyBrowsePage() {
   return (
     <main className="py-12">
       <div className="container mx-auto">
-        <div className="flex justify-between items-center mb-8">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold">Zobacz, kto jest gotowy do pracy</h1>
             <p className="text-gray-600">Przeglądasz ludzi do pracy z okolicy ({displayedListings.length} wyników)</p>
           </div>
-          <div className="space-y-3">
+          <div className="w-full max-w-xs space-y-3 sm:w-auto sm:min-w-[220px]">
             <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-center">
               <p className="text-sm text-gray-600">Plan:</p>
-              <p className="text-lg font-bold text-primary">
+              <p className="text-lg font-bold text-primary whitespace-nowrap">
                 {tier === 'pro' ? 'PRO – bez limitu' : `FREE – ${contactsRemaining} odkryć`}
               </p>
             </div>

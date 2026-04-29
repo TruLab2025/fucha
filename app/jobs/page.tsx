@@ -48,8 +48,13 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
   return (
     <section className="py-12">
       <div className="container mx-auto">
-        <h1 className="text-3xl font-bold mb-2 text-center">Dostępne fuchy</h1>
-        <p className="text-center text-gray-600 mb-8">Pracownicy szukają zleceń. Przeglądasz {listings.length} wyników.</p>
+        <div className="mx-auto mb-8 max-w-3xl text-center">
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">Dla osób szukających pracy</p>
+          <h1 className="mt-3 text-3xl font-bold sm:text-4xl">Podejrzyj inne fuchy i skopiuj podobną dla siebie</h1>
+          <p className="mt-4 text-gray-600 leading-7">
+            Ta lista pomaga Ci zobaczyć, jak ogłaszają się inni, jakie stawki podają i jak opisują swoją dostępność. Przeglądasz {listings.length} wyników i możesz jednym kliknięciem przenieść dane do własnego formularza.
+          </p>
+        </div>
 
         <JobsFilters
           initialProvince={searchParams?.province}
@@ -57,6 +62,12 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
           initialCategory={searchParams?.category}
           initialDate={searchParams?.date}
         />
+
+        <div className="mb-8 rounded-2xl bg-blue-50 px-6 py-5 text-center text-sm text-blue-900">
+          <p>
+            💡 <strong>Jak używać tej strony:</strong> znajdź ogłoszenie podobne do swojego, podejrzyj stawkę i kliknij <strong>Duplikuj fuchę</strong>, żeby nie wpisywać wszystkiego od zera.
+          </p>
+        </div>
 
         {paginatedListings.length === 0 ? (
           <div className="text-center py-12">

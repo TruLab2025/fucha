@@ -40,11 +40,13 @@ export default function FaqPage() {
   return (
     <section className="py-12">
       <div className="mx-auto max-w-3xl">
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">FAQ</p>
-        <h1 className="mt-3 text-4xl font-bold leading-tight">Najczęstsze pytania</h1>
-        <p className="mt-4 text-gray-600 leading-7">
-          Krótko i konkretnie: jak działa Fucha24, dla kogo jest i kiedy warto z niego skorzystać.
-        </p>
+        <div className="text-center">
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">FAQ</p>
+          <h1 className="mt-3 text-4xl font-bold leading-tight">Najczęstsze pytania</h1>
+          <p className="mt-4 text-gray-600 leading-7">
+            Krótko i konkretnie: jak działa Fucha24, dla kogo jest i kiedy warto z niego skorzystać.
+          </p>
+        </div>
 
         <div className="mt-10 space-y-4">
           {faqItems.map((item) => (

@@ -21,6 +21,11 @@ export default function HeroSection() {
           Szukam ludzi do pracy
         </Link>
       </div>
+      <div className="mt-4 text-center">
+        <Link href="/jobs" className="text-sm font-semibold text-primary underline underline-offset-2">
+          Zobacz też inne fuchy
+        </Link>
+      </div>
       <div className="mt-8 flex flex-wrap justify-center gap-3 text-sm text-gray-700">
         <span className="rounded-full bg-white px-4 py-2 shadow-sm">Bez zakładania konta</span>
         <span className="rounded-full bg-white px-4 py-2 shadow-sm">Kontakt w kilka minut</span>

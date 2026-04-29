@@ -50,9 +50,12 @@ export default function JobCard({ job }: Props) {
             {job.province}, {job.city} – {formatAvailability(job)}{job.rate_type !== 'daily' && job.available_hours ? ` (${job.available_hours}h)` : ''}
           </p>
           <p className="mt-2 font-medium text-primary">{formatRate(job)}</p>
+          <p className="mt-3 text-sm text-gray-600 line-clamp-2">
+            Podejrzyj, jak ktoś opisał swoją dostępność, a potem skopiuj to do swojego ogłoszenia.
+          </p>
         </div>
         <button
-          className="mt-4 px-4 py-2 bg-blue-100 text-blue-800 rounded-lg hover:bg-blue-200"
+          className="mt-4 px-4 py-2 bg-blue-100 text-blue-800 rounded-lg font-medium hover:bg-blue-200"
           onClick={() => {
             // Przekieruj do /add z query stringiem z danymi tej fuchy
             const params = new URLSearchParams({
@@ -65,7 +68,7 @@ export default function JobCard({ job }: Props) {
               available_to: job.available_to || '',
               available_hours: job.available_hours || '',
               rate_type: job.rate_type || 'hourly',
-              rate: job.rate || ''
+              rate: ''
             }).toString();
             window.location.href = `/add?${params}`;
           }}

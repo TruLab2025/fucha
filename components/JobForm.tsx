@@ -1,7 +1,7 @@
 // components/JobForm.tsx
 "use client";
 import Link from 'next/link';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm, Controller, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -60,7 +60,7 @@ const jobSchema = z.object({
 type JobInput = z.infer<typeof jobSchema>;
 
 const ratePresets = [50,75,100,125,150,175,200,400];
-const hourPresets = [1,2,3,4,5,6,7,8];
+const hourPresets = [1,2,3,4,5,6,7,8,10];
 const rateTypes = [
   { value: 'hourly', label: 'zł / h' },
   { value: 'daily', label: 'zł / dzień' },
@@ -155,11 +155,18 @@ export default function JobForm() {
     control,
     watch,
     setValue,
+    reset,
     formState: { errors, isSubmitting },
   } = useForm<JobInput>({
     resolver: zodResolver(jobSchema),
     defaultValues,
   });
+
+  useEffect(() => {
+    reset(defaultValues);
+    setSuccess(false);
+    setSubmitError(null);
+  }, [defaultValues, reset]);
 
   const provinceField = register('province');
   const phoneField = register('phone');
@@ -192,7 +199,7 @@ export default function JobForm() {
   };
 
   return (
-    <div className="mx-auto max-w-lg rounded-2xl bg-white p-6 shadow-sm sm:p-8">
+    <div className="mx-auto max-w-2xl rounded-2xl bg-white p-6 shadow-sm sm:p-8">
       {success ? (
         <div className="p-6 bg-green-100 text-green-800 rounded-lg text-center space-y-4">
           <p>Ogłoszenie opublikowane! Za chwilę przejdziesz do listy fuch.</p>

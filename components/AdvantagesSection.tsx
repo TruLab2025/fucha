@@ -54,6 +54,11 @@ export default function AdvantagesSection() {
             Szukam ludzi do pracy
           </Link>
         </div>
+        <div className="mt-4 text-center">
+          <Link href="/jobs" className="text-sm font-semibold text-primary underline underline-offset-2">
+            Zobacz też inne fuchy
+          </Link>
+        </div>
       </div>
     </section>
   );

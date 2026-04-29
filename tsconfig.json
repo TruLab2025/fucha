@@ -14,6 +14,7 @@
     "noEmit": true,
     "esModuleInterop": true,
     "moduleResolution": "Node",
+    "ignoreDeprecations": "5.0",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
