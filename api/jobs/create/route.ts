@@ -4,13 +4,17 @@ import { z } from 'zod';
 import { createListing } from '../../../lib/db';
 
 const jobSchema = z.object({
+  type: z.literal('worker').default('worker'),
   title: z.string(),
   description: z.string(),
   province: z.string(),
   city: z.string(),
   category: z.string(),
+  availability_mode: z.enum(['single', 'range']).optional(),
   available_date: z.string(),
-  available_hours: z.string(),
+  available_to: z.string().optional(),
+  available_hours: z.string().optional(),
+  rate_type: z.enum(['hourly', 'daily']).optional(),
   rate: z.string(),
   phone: z.string(),
   email: z.string().email(),

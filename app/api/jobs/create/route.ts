@@ -61,7 +61,8 @@ export async function POST(req: NextRequest) {
     }
     
     const data = jobSchema.parse(body);
-    const listing = await createListing(data as any);
+    const { terms, hp, ...listingInput } = data;
+    const listing = await createListing(listingInput);
     return NextResponse.json(listing);
   } catch (err) {
     console.error(err);

@@ -2,17 +2,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { sendContactEmail } from '../../../lib/email';
+import { getListingById, getListingContact } from '../../../lib/db';
 
 const contactSchema = z.object({
   name: z.string(),
   email: z.string().email(),
   phone: z.string().optional(),
   message: z.string(),
-  listing: z.object({
-    id: z.string(),
-    title: z.string(),
-    email: z.string().email(),
-  }),
+  targetListingId: z.string(),
 });
 
 export async function POST(req: NextRequest) {
@@ -20,7 +17,16 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const data = contactSchema.parse(body);
 
-    const subject = `Zapytanie o fuchę: ${data.listing.title}`;
+    const [listing, contact] = await Promise.all([
+      getListingById(data.targetListingId),
+      getListingContact(data.targetListingId),
+    ]);
+
+    if (!listing || !contact) {
+      return NextResponse.json({ error: 'Ogłoszenie nie istnieje lub nie ma kontaktu' }, { status: 404 });
+    }
+
+    const subject = `Zapytanie o fuchę: ${listing.title || listing.job_title || 'Fucha24'}`;
     const text = `Imię: ${data.name}
 Email: ${data.email}
 Telefon: ${data.phone || '-'}
@@ -29,7 +35,7 @@ Wiadomość:
 ${data.message}`;
 
     await sendContactEmail({
-      to: data.listing.email,
+      to: contact.email,
       subject,
       text,
     });

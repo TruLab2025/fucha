@@ -21,10 +21,7 @@ export async function GET(req: NextRequest) {
       available_date: date,
     });
 
-    // Remove sensitive data (phone/email are private and only shared via contact form)
-    const sanitized = listings.map(({ phone, email, ...listing }) => listing);
-
-    return NextResponse.json(sanitized);
+    return NextResponse.json(listings);
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: 'Failed to fetch' }, { status: 500 });

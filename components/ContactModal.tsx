@@ -33,7 +33,13 @@ export default function ContactModal({ listing, onClose }: Props) {
     await fetch('/api/contact/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...data, listing }),
+      body: JSON.stringify({
+        senderName: data.name,
+        senderEmail: data.email,
+        senderPhone: data.phone,
+        message: data.message,
+        targetListingId: listing.id,
+      }),
     });
     alert('Wiadomość wysłana');
     onClose();
