@@ -1,105 +1,135 @@
-// components/JobCard.tsx
 "use client";
+
 import React, { useState } from 'react';
 import ContactModal from './ContactModal';
+import Icon, { IconName } from './Icon';
 import { Listing } from '../lib/db';
 
 interface Props {
   job: Listing;
 }
 
-const categoryIcons: Record<string, string> = {
-  Transport: '🚚',
-  Ogród: '🌿',
-  Budowa: '🔨',
-  Magazyn: '📦',
-  Inne: '➕',
+const categoryIcons: Record<string, IconName> = {
+  Transport: 'transport',
+  Ogród: 'leaf',
+  Budowa: 'hammer',
+  Magazyn: 'package',
+  Inne: 'plus',
 };
 
 const formatAvailability = (job: Listing) => {
-  if (!job.available_date) return '';
+  if (!job.available_date) return 'Termin do ustalenia';
 
   const start = new Date(job.available_date).toLocaleDateString('pl-PL');
   if (job.available_to && job.available_to !== job.available_date) {
-    return `${start} - ${new Date(job.available_to).toLocaleDateString('pl-PL')}`;
+    return `${start} – ${new Date(job.available_to).toLocaleDateString('pl-PL')}`;
   }
 
   return start;
 };
 
 const formatRate = (job: Listing) => {
-  if (!job.rate) return '';
-  return job.rate_type === 'daily' ? `${job.rate} zl/dzien` : `${job.rate} zl/h`;
+  if (!job.rate) return 'Stawka do ustalenia';
+  return job.rate_type === 'daily' ? `${job.rate} zł / dzień` : `${job.rate} zł / h`;
 };
 
 export default function JobCard({ job }: Props) {
   const [open, setOpen] = useState(false);
 
-  // Worker listing (mam czas)
   if (job.type === 'worker') {
+    const categoryIcon = categoryIcons[job.category || ''] || 'briefcase';
+
     return (
-      <div className="bg-white rounded-xl shadow-sm p-6 flex flex-col justify-between">
-        <div>
-          <div className="flex items-center space-x-2">
-            <span className="text-xl">
-              {categoryIcons[job.category || ''] || '❓'}
+      <article className="group flex h-full flex-col overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-card transition hover:-translate-y-1 hover:border-primary-200 hover:shadow-float">
+        <div className="flex-1 p-6">
+          <div className="flex items-start justify-between gap-4">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary transition group-hover:bg-primary group-hover:text-white">
+              <Icon name={categoryIcon} size={21} />
             </span>
-            <h3 className="text-lg font-semibold text-text">{job.title}</h3>
+            <span className="rounded-full bg-green-50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-green-700">
+              Dostępny
+            </span>
           </div>
-          <p className="text-sm text-gray-500 mt-1">
-            {job.province}, {job.city} – {formatAvailability(job)}{job.rate_type !== 'daily' && job.available_hours ? ` (${job.available_hours}h)` : ''}
-          </p>
-          <p className="mt-2 font-medium text-primary">{formatRate(job)}</p>
-          <p className="mt-3 text-sm text-gray-600 line-clamp-2">
-            Podejrzyj, jak ktoś opisał swoją dostępność, a potem skopiuj to do swojego ogłoszenia.
-          </p>
+
+          <p className="mt-5 text-xs font-bold uppercase tracking-[0.14em] text-primary">{job.category || 'Inna kategoria'}</p>
+          <h3 className="mt-1.5 text-xl font-bold leading-snug text-ink">{job.title}</h3>
+
+          <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-sm font-medium text-neutral-500">
+            <span className="inline-flex items-center gap-1.5">
+              <Icon name="map-pin" size={16} className="text-neutral-400" />
+              {[job.city, job.province].filter(Boolean).join(', ')}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Icon name="calendar" size={16} className="text-neutral-400" />
+              {formatAvailability(job)}
+            </span>
+            {job.rate_type !== 'daily' && job.available_hours && (
+              <span className="inline-flex items-center gap-1.5">
+                <Icon name="clock" size={16} className="text-neutral-400" />
+                {job.available_hours} h
+              </span>
+            )}
+          </div>
+
+          {job.description && (
+            <p className="mt-4 line-clamp-2 text-sm leading-6 text-muted">{job.description}</p>
+          )}
+
+          <p className="mt-5 text-2xl font-black tracking-tight text-ink">{formatRate(job)}</p>
         </div>
-        <button
-          className="mt-4 px-4 py-2 bg-blue-100 text-blue-800 rounded-lg font-medium hover:bg-blue-200"
-          onClick={() => {
-            // Przekieruj do /add z query stringiem z danymi tej fuchy
-            const params = new URLSearchParams({
-              title: job.title || '',
-              description: job.description || '',
-              province: job.province || '',
-              city: job.city || '',
-              category: job.category || '',
-              available_date: job.available_date || '',
-              available_to: job.available_to || '',
-              available_hours: job.available_hours || '',
-              rate_type: job.rate_type || 'hourly',
-              rate: ''
-            }).toString();
-            window.location.href = `/add?${params}`;
-          }}
-        >
-          Duplikuj fuchę
-        </button>
-      </div>
+
+        <div className="border-t border-neutral-100 bg-neutral-50/70 p-4">
+          <button
+            type="button"
+            className="btn-secondary w-full border-white bg-white"
+            onClick={() => {
+              const params = new URLSearchParams({
+                title: job.title || '',
+                description: job.description || '',
+                province: job.province || '',
+                city: job.city || '',
+                category: job.category || '',
+                available_date: job.available_date || '',
+                available_to: job.available_to || '',
+                available_hours: job.available_hours || '',
+                rate_type: job.rate_type || 'hourly',
+                rate: '',
+              }).toString();
+              window.location.href = `/add?${params}`;
+            }}
+          >
+            <Icon name="copy" size={17} />
+            Użyj jako wzoru
+          </button>
+        </div>
+      </article>
     );
   }
 
-  // Employer listing (szukam ludzi)
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6 flex flex-col justify-between border-2 border-blue-100">
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-lg font-semibold text-text">{job.job_title}</h3>
-          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded font-bold">SZUKA LUDZI</span>
+    <article className="flex h-full flex-col overflow-hidden rounded-3xl border border-green-100 bg-white shadow-card transition hover:-translate-y-1 hover:shadow-float">
+      <div className="flex-1 p-6">
+        <div className="flex items-start justify-between gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-green-50 text-green-700">
+            <Icon name="briefcase" size={21} />
+          </span>
+          <span className="rounded-full bg-green-50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-green-700">Firma szuka</span>
         </div>
-        <p className="text-sm font-medium text-primary mb-1">{job.company_name}</p>
-        <p className="text-sm text-gray-500 mb-2">
-          {job.category} • {job.experience_level} • {job.salary_min}-{job.salary_max} zł/h
+        <p className="mt-5 text-xs font-bold uppercase tracking-[0.14em] text-green-700">{job.company_name}</p>
+        <h3 className="mt-1.5 text-xl font-bold leading-snug text-ink">{job.job_title}</h3>
+        <p className="mt-4 text-sm font-medium text-neutral-500">
+          {[job.category, job.experience_level].filter(Boolean).join(' · ')}
         </p>
-        <p className="text-sm text-gray-700 line-clamp-2">{job.description}</p>
+        <p className="mt-2 text-lg font-black text-ink">{job.salary_min}–{job.salary_max} zł / h</p>
+        <p className="mt-4 line-clamp-2 text-sm leading-6 text-muted">{job.description}</p>
       </div>
-      <button
-        className="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-blue-700"
-        onClick={() => setOpen(true)}
-      >
-        Szczegóły i aplikacja
-      </button>
+      <div className="border-t border-neutral-100 bg-neutral-50/70 p-4">
+        <button type="button" className="btn-green w-full" onClick={() => setOpen(true)}>
+          Szczegóły i kontakt
+          <Icon name="arrow-right" size={17} />
+        </button>
+      </div>
       {open && <ContactModal listing={job} onClose={() => setOpen(false)} />}
-    </div>
+    </article>
   );
 }

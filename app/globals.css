@@ -2,15 +2,133 @@
 @tailwind components;
 @tailwind utilities;
 
-html, body {
-  padding: 0;
-  margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply m-0 bg-canvas font-sans text-ink;
+    min-width: 320px;
+    text-rendering: optimizeLegibility;
+  }
+
+  * {
+    @apply border-neutral-200;
+  }
+
+  ::selection {
+    background: #c7f36b;
+    color: #17211d;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display text-ink;
+    letter-spacing: -0.035em;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  a,
+  button,
+  input,
+  select,
+  textarea {
+    @apply transition duration-200;
+  }
+
+  button,
+  a {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    @apply outline outline-2 outline-offset-2 outline-primary-600;
+  }
+
+  input:not([type='checkbox']):not([type='radio']),
+  select,
+  textarea {
+    @apply appearance-none rounded-xl border border-neutral-200 bg-white px-4 py-3 text-[15px] text-ink shadow-sm outline-none placeholder:text-neutral-600 hover:border-neutral-300 focus:border-primary focus:ring-4 focus:ring-primary-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600;
+  }
+
+  textarea {
+    @apply min-h-[120px] resize-y;
+  }
 }
 
-/* form element base styling */
-input, select, textarea {
-  @apply appearance-none border rounded;
+@layer components {
+  .eyebrow {
+    @apply inline-flex items-center gap-2 rounded-full border border-neutral-200 bg-white/80 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.16em] text-primary shadow-sm backdrop-blur;
+  }
+
+  .section-kicker {
+    @apply text-xs font-bold uppercase tracking-[0.18em] text-primary;
+  }
+
+  .section-title {
+    @apply text-3xl font-bold leading-[1.08] sm:text-4xl lg:text-5xl;
+  }
+
+  .section-copy {
+    @apply text-base leading-7 text-muted sm:text-lg sm:leading-8;
+  }
+
+  .surface {
+    @apply rounded-3xl border border-neutral-200/90 bg-white shadow-card;
+  }
+
+  .btn-primary {
+    @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-center text-sm font-bold text-white shadow-lg shadow-primary-200/50 hover:-translate-y-0.5 hover:bg-primary-600 hover:shadow-xl disabled:pointer-events-none disabled:opacity-60;
+  }
+
+  .btn-green {
+    @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-ink px-5 py-3 text-center text-sm font-bold text-white shadow-lg shadow-neutral-300/50 hover:-translate-y-0.5 hover:bg-green-700 hover:shadow-xl disabled:pointer-events-none disabled:opacity-60;
+  }
+
+  .btn-secondary {
+    @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-5 py-3 text-center text-sm font-bold text-ink shadow-sm hover:-translate-y-0.5 hover:border-neutral-300 hover:bg-neutral-50;
+  }
+
+  .field-label {
+    @apply mb-2 block text-sm font-semibold text-neutral-700;
+  }
+
+  .field-error {
+    @apply mt-1.5 text-sm font-medium text-red-600;
+  }
+
+  .choice-chip {
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 shadow-sm hover:-translate-y-0.5 hover:border-primary-300 hover:text-primary;
+  }
+
+  .soft-grid {
+    background-image:
+      linear-gradient(rgba(23, 33, 29, 0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(23, 33, 29, 0.045) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  .noise-wash {
+    background:
+      radial-gradient(circle at 16% 12%, rgba(199, 243, 107, 0.32), transparent 28%),
+      radial-gradient(circle at 88% 18%, rgba(36, 107, 253, 0.16), transparent 30%),
+      #f5f7f3;
+  }
 }
 
 /* checkbox styling */
@@ -20,7 +138,7 @@ input[type="checkbox"] {
   -moz-appearance: none;
   width: 1.25rem;
   height: 1.25rem;
-  border: 2px solid #D1D5DB;
+  border: 2px solid #D5DBD7;
   border-radius: 0.375rem;
   cursor: pointer;
   background-color: white;
@@ -29,8 +147,8 @@ input[type="checkbox"] {
 }
 
 input[type="checkbox"]:checked {
-  background-color: #2563EB;
-  border-color: #2563EB;
+  background-color: #246BFD;
+  border-color: #246BFD;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 8.086l4.293-4.293a1 1 0 011.414 0z'/%3E%3C/svg%3E");
   background-size: 100% 100%;
   background-position: center;
@@ -41,9 +159,10 @@ input[type="checkbox"]:hover:not(:checked) {
   border-color: #9CA3AF;
 }
 
-input[type="checkbox"]:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+input[type="checkbox"]:focus-visible {
+  outline: 2px solid #1F5DE8;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(36, 107, 253, 0.16);
 }
 
 /* custom date picker arrow (chrome) */
@@ -55,23 +174,35 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 select {
   background-image: url("data:image/svg+xml,%3Csvg fill='none' viewBox='0 0 20 20' stroke='currentColor' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M7 7l3-3 3 3m0 6l-3 3-3-3'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 0.5rem center;
+  background-position: right 0.9rem center;
   background-size: 1rem;
   padding-right: 2.5rem;
 }
 
 /* datepicker overrides */
 .react-datepicker {
-  @apply border rounded shadow-lg;
+  @apply overflow-hidden rounded-2xl border border-neutral-200 bg-white font-sans shadow-float;
+}
+.react-datepicker-wrapper {
+  @apply w-full;
 }
 .react-datepicker__header {
-  @apply bg-primary text-white;
+  @apply border-0 bg-ink text-white;
+}
+.react-datepicker__current-month,
+.react-datepicker-time__header,
+.react-datepicker-year-header,
+.react-datepicker__day-name {
+  @apply text-white;
+}
+.react-datepicker__navigation-icon::before {
+  border-color: white;
 }
 .react-datepicker__day--selected {
-  @apply bg-primary text-white;
+  @apply rounded-lg bg-primary text-white;
 }
 .react-datepicker__day:hover {
-  @apply bg-primary/30;
+  @apply rounded-lg bg-primary-100;
 }
 .react-datepicker__triangle {
   display: none;
@@ -82,11 +213,26 @@ select {
   @apply w-full;
 }
 .react-time-picker__wrapper {
-  @apply border border-gray-300 rounded p-2;
+  @apply rounded-xl border border-neutral-200 bg-white p-2;
 }
 .react-time-picker__inputGroup {
   @apply text-center;
 }
 .react-time-picker__input {
   @apply bg-white border-0 text-center focus:outline-none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }

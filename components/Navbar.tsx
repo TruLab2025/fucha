@@ -1,70 +1,107 @@
-// components/Navbar.tsx
 "use client";
 
 import Link from 'next/link';
-import React, { useState } from 'react';
-import Image from 'next/image';
+import React, { useEffect, useRef, useState } from 'react';
+import Brand from './Brand';
+import Icon from './Icon';
+
+const navLinks = [
+  { href: '/#how-it-works', label: 'Jak to działa' },
+  { href: '/jobs', label: 'Podejrzyj fuchy' },
+  { href: '/#pricing', label: 'Cennik' },
+  { href: '/faq', label: 'FAQ' },
+];
 
 export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const closeMenu = () => setIsMobileMenuOpen(false);
 
-  const handleMobileMenuClose = () => {
-    setIsMobileMenuOpen(false);
-  };
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsMobileMenuOpen(false);
+        menuButtonRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isMobileMenuOpen]);
 
   return (
-    <nav className="bg-white shadow-sm">
-      <div className="container mx-auto flex flex-row items-center justify-between py-3 gap-2">
-        <Link href="/" className="flex items-center shrink-0 mr-2" aria-label="Fucha24 logo">
-          <Image
-            src="/fucha24.png"
-            alt="Fucha24 logo"
-            width={140}
-            height={40}
-            className="h-10 w-auto max-w-[140px] object-contain"
-            priority
-          />
+    <header className="sticky top-0 z-40 border-b border-neutral-200/80 bg-canvas/90 backdrop-blur-xl">
+      <nav className="container mx-auto flex h-[72px] items-center justify-between gap-4" aria-label="Główna nawigacja">
+        <Link href="/" className="shrink-0 rounded-xl" aria-label="Fucha24 — strona główna">
+          <Brand />
         </Link>
 
-        <div className="hidden flex-1 items-center justify-end gap-1 sm:flex sm:gap-2">
-          <Link href="/#how-it-works" className="px-2 py-1 sm:px-3 sm:py-2 text-gray-700 rounded-lg hover:bg-gray-100 text-xs sm:text-base text-center whitespace-nowrap">Jak to działa</Link>
-          <Link href="/#pricing" className="px-2 py-1 sm:px-3 sm:py-2 text-gray-700 rounded-lg hover:bg-gray-100 text-xs sm:text-base text-center whitespace-nowrap">Cennik</Link>
-          <Link href="/#testimonials" className="px-2 py-1 sm:px-3 sm:py-2 text-gray-700 rounded-lg hover:bg-gray-100 text-xs sm:text-base text-center whitespace-nowrap">Opinie</Link>
-          <Link href="/faq" className="px-2 py-1 sm:px-3 sm:py-2 text-gray-700 rounded-lg hover:bg-gray-100 text-xs sm:text-base text-center whitespace-nowrap">FAQ</Link>
-          <Link href="/#contact" className="px-2 py-1 sm:px-3 sm:py-2 text-gray-700 rounded-lg hover:bg-gray-100 text-xs sm:text-base text-center whitespace-nowrap">Kontakt</Link>
-          <Link href="/add" className="px-2 py-1 sm:px-3 sm:py-2 bg-primary text-white rounded-lg hover:bg-blue-700 text-xs sm:text-base text-center whitespace-nowrap">
-            Dodaj fuchę
-          </Link>
-          <Link href="/companies/browse" className="px-2 py-1 sm:px-3 sm:py-2 bg-green text-white rounded-lg hover:bg-green-600 text-xs sm:text-base text-center whitespace-nowrap">
+        <div className="hidden items-center gap-1 lg:flex">
+          {navLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="rounded-lg px-3 py-2 text-sm font-semibold text-neutral-600 hover:bg-white hover:text-ink"
+            >
+              {link.label}
+            </Link>
+          ))}
+        </div>
+
+        <div className="hidden items-center gap-2 lg:flex">
+          <Link href="/companies/browse" className="btn-secondary min-h-11 px-4 py-2.5">
+            <Icon name="users" size={18} />
             Szukam ludzi
+          </Link>
+          <Link href="/add" className="btn-primary min-h-11 px-4 py-2.5">
+            Dodaj dostępność
+            <Icon name="arrow-up-right" size={17} />
           </Link>
         </div>
 
         <button
+          ref={menuButtonRef}
           type="button"
           aria-label={isMobileMenuOpen ? 'Zamknij menu' : 'Otwórz menu'}
           aria-expanded={isMobileMenuOpen}
+          aria-controls="mobile-navigation"
           onClick={() => setIsMobileMenuOpen((value) => !value)}
-          className="flex h-11 w-11 items-center justify-center rounded-lg border border-gray-200 text-gray-700 shadow-sm transition hover:bg-gray-50 sm:hidden"
+          className="flex h-11 w-11 items-center justify-center rounded-xl border border-neutral-200 bg-white text-ink shadow-sm hover:bg-neutral-50 lg:hidden"
         >
-          <span className="text-xl" aria-hidden="true">☰</span>
+          <Icon name={isMobileMenuOpen ? 'x' : 'menu'} size={21} />
         </button>
-      </div>
+      </nav>
 
       {isMobileMenuOpen && (
-        <div className="border-t border-gray-100 bg-white sm:hidden">
-          <div className="container mx-auto flex flex-col gap-2 py-4">
-            <Link onClick={handleMobileMenuClose} href="/#how-it-works" className="rounded-lg px-4 py-3 text-gray-700 transition hover:bg-gray-100">Jak to działa</Link>
-            <Link onClick={handleMobileMenuClose} href="/#pricing" className="rounded-lg px-4 py-3 text-gray-700 transition hover:bg-gray-100">Cennik</Link>
-            <Link onClick={handleMobileMenuClose} href="/#testimonials" className="rounded-lg px-4 py-3 text-gray-700 transition hover:bg-gray-100">Opinie</Link>
-            <Link onClick={handleMobileMenuClose} href="/faq" className="rounded-lg px-4 py-3 text-gray-700 transition hover:bg-gray-100">FAQ</Link>
-            <Link onClick={handleMobileMenuClose} href="/#contact" className="rounded-lg px-4 py-3 text-gray-700 transition hover:bg-gray-100">Kontakt</Link>
-            <Link onClick={handleMobileMenuClose} href="/jobs" className="rounded-lg px-4 py-3 text-primary transition hover:bg-blue-50">Zobacz też inne fuchy</Link>
-            <Link onClick={handleMobileMenuClose} href="/add" className="rounded-lg bg-primary px-4 py-3 text-center font-medium text-white transition hover:bg-blue-700">Dodaj fuchę</Link>
-            <Link onClick={handleMobileMenuClose} href="/companies/browse" className="rounded-lg bg-green px-4 py-3 text-center font-medium text-white transition hover:bg-green-600">Szukam ludzi</Link>
+        <nav
+          id="mobile-navigation"
+          aria-label="Nawigacja mobilna"
+          className="max-h-[calc(100dvh-72px)] overflow-y-auto border-t border-neutral-200 bg-canvas px-4 pb-5 pt-3 shadow-float lg:hidden"
+        >
+          <div className="mx-auto flex max-w-lg flex-col gap-1">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                onClick={closeMenu}
+                href={link.href}
+                className="rounded-xl px-4 py-3 text-base font-semibold text-neutral-700 hover:bg-white"
+              >
+                {link.label}
+              </Link>
+            ))}
+            <div className="my-2 h-px bg-neutral-200" />
+            <Link onClick={closeMenu} href="/companies/browse" className="btn-secondary w-full">
+              <Icon name="users" size={18} />
+              Szukam ludzi do pracy
+            </Link>
+            <Link onClick={closeMenu} href="/add" className="btn-primary mt-1 w-full">
+              Dodaj swoją dostępność
+              <Icon name="arrow-right" size={18} />
+            </Link>
           </div>
-        </div>
+        </nav>
       )}
-    </nav>
+    </header>
   );
 }

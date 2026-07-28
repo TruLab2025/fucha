@@ -1,65 +1,42 @@
-// components/AdvantagesSection.tsx
 import React from 'react';
 import Link from 'next/link';
+import Icon, { IconName } from './Icon';
 
-const items = [
-  {
-    icon: '⚡',
-    title: 'Start w kilka minut',
-    text: 'Dodajesz ofertę albo zgłoszenie bez rozbudowanego procesu i bez czekania na akceptację.',
-  },
-  {
-    icon: '📄',
-    title: 'Bez CV i formalności',
-    text: 'Liczy się dostępność, lokalizacja i konkret. Minimum tarcia, maksimum szybkiego kontaktu.',
-  },
-  {
-    icon: '📍',
-    title: 'Ludzie z Twojej okolicy',
-    text: 'Przeglądasz lokalne fuchy i lokalnych pracowników, więc łatwiej dogadać termin i dojazd.',
-  },
-  {
-    icon: '🔔',
-    title: 'Szybkie decyzje',
-    text: 'Jasny formularz i prosty kontakt skracają drogę od ogłoszenia do realnego zlecenia.',
-  },
+const items: { icon: IconName; title: string; text: string }[] = [
+  { icon: 'zap', title: 'Start w kilka minut', text: 'Krótki formularz i od razu jesteś widoczny dla lokalnych zleceniodawców.' },
+  { icon: 'shield', title: 'Kontakt pod kontrolą', text: 'Numer nie leży publicznie na stronie — firmy odkrywają go świadomie.' },
+  { icon: 'map-pin', title: 'Naprawdę lokalnie', text: 'Miasto, województwo i termin pomagają szybko znaleźć sensowne dopasowanie.' },
+  { icon: 'file', title: 'Bez CV i konta', text: 'Liczy się to, co potrafisz, kiedy możesz i za jaką stawkę chcesz pracować.' },
 ];
 
 export default function AdvantagesSection() {
   return (
-    <section className="py-20">
-      <h2 className="text-3xl font-bold text-center">Zalety</h2>
-      <p className="mt-4 max-w-2xl mx-auto text-center text-gray-600 leading-7">
-        Mniej formalności, więcej lokalnych kontaktów i szybsza droga do dogadania roboty.
-      </p>
-      <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-        {items.map(item => (
-          <div
-            key={item.title}
-            className="flex flex-col items-center bg-white rounded-xl p-6 shadow hover:shadow-md transition"
-          >
-            <span className="text-3xl">{item.icon}</span>
-            <p className="mt-3 font-semibold text-center">{item.title}</p>
-            <p className="mt-2 text-sm text-gray-600 text-center leading-6">{item.text}</p>
-          </div>
-        ))}
-      </div>
-      <div className="mt-10 rounded-2xl bg-neutral px-6 py-8 text-center">
-        <p className="text-xl font-semibold">Chcesz ruszyć teraz?</p>
-        <div className="mt-6 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-          <Link href="/add" className="w-full rounded-xl bg-primary px-6 py-3 text-center text-white shadow-sm transition hover:bg-blue-700 sm:w-auto">
-            Mam czas i chcę dorobić
-          </Link>
-          <Link href="/companies/browse" className="w-full rounded-xl bg-green px-6 py-3 text-center text-white transition hover:bg-green-600 sm:w-auto">
-            Szukam ludzi do pracy
+    <div className="noise-wash py-20 sm:py-28">
+      <div className="container mx-auto grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:items-center lg:gap-16">
+        <div>
+          <p className="section-kicker">Mniej tarcia, więcej konkretu</p>
+          <h2 className="section-title mt-3">Stworzone dla szybkich, lokalnych decyzji</h2>
+          <p className="section-copy mt-5 max-w-xl">
+            Fucha24 skraca drogę od „mam wolny dzień” do „widzimy się jutro rano”. Bez budowania profilu i bez czekania na odpowiedź tygodniami.
+          </p>
+          <Link href="/faq" className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-primary hover:text-primary-700">
+            Zobacz najczęstsze pytania
+            <Icon name="arrow-right" size={17} />
           </Link>
         </div>
-        <div className="mt-4 text-center">
-          <Link href="/jobs" className="text-sm font-semibold text-primary underline underline-offset-2">
-            Zobacz też inne fuchy
-          </Link>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          {items.map((item, index) => (
+            <article key={item.title} className={`surface p-6 ${index === 1 ? 'sm:translate-y-6' : ''}`}>
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-ink text-lime">
+                <Icon name={item.icon} size={21} />
+              </span>
+              <h3 className="mt-5 text-lg font-bold">{item.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-muted">{item.text}</p>
+            </article>
+          ))}
         </div>
       </div>
-    </section>
+    </div>
   );
 }

@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import ReactDatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
+import Icon from './Icon';
 
 interface JobsFiltersProps {
   initialProvince?: string;
@@ -82,92 +82,115 @@ export default function JobsFilters({
   };
 
   return (
-    <div className="mb-8 rounded-2xl bg-white p-6 shadow-sm">
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">Województwo</label>
-          <select
-            value={province}
-            onChange={(e) => {
-              const nextProvince = e.target.value;
-              setProvince(nextProvince);
-              if (!nextProvince) {
-                setCity('');
-                return;
-              }
-              const nextCities = PROVINCES[nextProvince] || [];
-              if (city && nextCities.includes(city)) return;
-              setCity(nextCities[0] || '');
-            }}
-            className="w-full rounded border p-2"
-          >
-            <option value="">-- Wszystkie --</option>
-            {Object.keys(PROVINCES).map((item) => (
-              <option key={item} value={item}>{item}</option>
-            ))}
-          </select>
+    <section className="surface mb-8 overflow-hidden" aria-labelledby="jobs-filters-title">
+      <div className="border-b border-neutral-200 bg-neutral-50/80 px-5 py-5 sm:px-7">
+        <div className="flex items-start gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary">
+            <Icon name="filter" size={19} />
+          </span>
+          <div>
+            <h2 id="jobs-filters-title" className="text-lg font-bold sm:text-xl">
+              Dopasuj wyniki
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-muted">
+              Wybierz lokalizację, kategorię lub termin, żeby szybciej znaleźć podobną fuchę.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-5 sm:p-7">
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+          <div>
+            <label className="field-label" htmlFor="jobs-province">Województwo</label>
+            <select
+              id="jobs-province"
+              value={province}
+              onChange={(e) => {
+                const nextProvince = e.target.value;
+                setProvince(nextProvince);
+                if (!nextProvince) {
+                  setCity('');
+                  return;
+                }
+                const nextCities = PROVINCES[nextProvince] || [];
+                if (city && nextCities.includes(city)) return;
+                setCity(nextCities[0] || '');
+              }}
+              className="min-h-12 w-full"
+            >
+              <option value="">-- Wszystkie --</option>
+              {Object.keys(PROVINCES).map((item) => (
+                <option key={item} value={item}>{item}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="field-label" htmlFor="jobs-city">Miasto</label>
+            <input
+              id="jobs-city"
+              list="jobs-city-list"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              placeholder="Wpisz lub wybierz"
+              className="min-h-12 w-full"
+            />
+            <datalist id="jobs-city-list">
+              {cityOptions.map((item) => (
+                <option key={item} value={item} />
+              ))}
+            </datalist>
+          </div>
+
+          <div>
+            <label className="field-label" htmlFor="jobs-category">Kategoria</label>
+            <select
+              id="jobs-category"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="min-h-12 w-full"
+            >
+              <option value="">-- Wszystkie --</option>
+              {CATEGORIES.map((item) => (
+                <option key={item} value={item}>{item}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="field-label" htmlFor="jobs-date">Od daty</label>
+            <ReactDatePicker
+              id="jobs-date"
+              selected={selectedDate}
+              onChange={(nextDate: Date | null) => setSelectedDate(nextDate)}
+              dateFormat="yyyy-MM-dd"
+              minDate={new Date()}
+              isClearable
+              placeholderText="Wybierz datę"
+              wrapperClassName="w-full"
+              className="min-h-12 w-full"
+            />
+          </div>
         </div>
 
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">Miasto</label>
-          <input
-            list="jobs-city-list"
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
-            placeholder="Wpisz lub wybierz"
-            className="w-full rounded border p-2"
-          />
-          <datalist id="jobs-city-list">
-            {cityOptions.map((item) => (
-              <option key={item} value={item} />
-            ))}
-          </datalist>
-        </div>
-
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">Kategoria</label>
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            className="w-full rounded border p-2"
-          >
-            <option value="">-- Wszystkie --</option>
-            {CATEGORIES.map((item) => (
-              <option key={item} value={item}>{item}</option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700">Od daty</label>
-          <ReactDatePicker
-            selected={selectedDate}
-            onChange={(nextDate: Date | null) => setSelectedDate(nextDate)}
-            dateFormat="yyyy-MM-dd"
-            minDate={new Date()}
-            isClearable
-            placeholderText="Wybierz datę"
-            className="w-full rounded border p-2"
-          />
-        </div>
-
-        <div className="flex items-end gap-3">
-          <button
-            type="button"
-            onClick={submitFilters}
-            className="flex-1 rounded-lg bg-primary px-4 py-2 text-white hover:bg-blue-700"
-          >
-            Filtruj
-          </button>
+        <div className="mt-6 flex flex-col-reverse gap-3 border-t border-neutral-200 pt-5 sm:flex-row sm:items-center sm:justify-end">
           <button
             type="button"
             onClick={resetFilters}
-            className="rounded-lg bg-gray-200 px-4 py-2 text-gray-700 hover:bg-gray-300"
+            className="btn-secondary w-full sm:w-auto"
           >
-            Reset
+            Wyczyść filtry
+          </button>
+          <button
+            type="button"
+            onClick={submitFilters}
+            className="btn-primary w-full sm:min-w-36 sm:w-auto"
+          >
+            Pokaż wyniki
           </button>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

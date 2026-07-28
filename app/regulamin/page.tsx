@@ -1,4 +1,5 @@
 import React from 'react';
+import Icon from '../../components/Icon';
 
 const sections = [
   {
@@ -69,29 +70,51 @@ const sections = [
 
 export default function TermsPage() {
   return (
-    <section className="py-12">
-      <div className="mx-auto max-w-4xl">
-        <div className="mx-auto max-w-3xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">Regulamin</p>
-          <h1 className="mt-3 text-4xl font-bold leading-tight">Przykładowy regulamin Fucha24</h1>
-          <p className="mt-4 text-gray-600 leading-7">
-            Poniższy dokument jest przykładową wersją regulaminu. Przed publikacją warto uzupełnić go o dane operatora, zasady płatności, politykę prywatności i szczegóły wymagane dla Twojego modelu działania.
+    <>
+      <section className="noise-wash border-b border-neutral-200 py-14 sm:py-20">
+        <div className="container mx-auto max-w-4xl text-center">
+          <span className="eyebrow"><Icon name="file" size={15} /> Dokumenty</span>
+          <h1 className="mt-5 text-4xl font-black leading-[1.03] sm:text-5xl lg:text-6xl">Regulamin Fucha24</h1>
+          <p className="section-copy mx-auto mt-5 max-w-3xl">
+            Zasady publikowania lokalnych ogłoszeń i nawiązywania kontaktu w serwisie.
           </p>
+          <div className="mx-auto mt-7 flex max-w-3xl items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-left text-sm leading-6 text-amber-900">
+            <Icon name="shield" size={20} className="mt-0.5 shrink-0" />
+            <p><strong>Wersja robocza:</strong> przed publikacją produkcyjną dokument należy uzupełnić o dane operatora, politykę prywatności i pełne zasady płatności.</p>
+          </div>
         </div>
+      </section>
 
-        <div className="mt-10 space-y-6">
-          {sections.map((section) => (
-            <section key={section.title} className="rounded-2xl bg-white p-6 shadow-sm">
-              <h2 className="text-xl font-semibold">{section.title}</h2>
-              <div className="mt-3 space-y-3 text-gray-600 leading-7">
-                {section.paragraphs.map((paragraph) => (
-                  <p key={paragraph}>{paragraph}</p>
-                ))}
-              </div>
-            </section>
-          ))}
+      <section className="container mx-auto py-12 sm:py-16">
+        <div className="mx-auto grid max-w-5xl gap-8 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-start">
+          <aside className="hidden lg:sticky lg:top-28 lg:block">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-neutral-400">W tym dokumencie</p>
+            <nav className="mt-4 space-y-1" aria-label="Spis treści regulaminu">
+              {sections.map((section, index) => (
+                <a key={section.title} href={`#terms-${index + 1}`} className="block rounded-lg px-3 py-2 text-sm font-semibold text-neutral-500 hover:bg-white hover:text-primary">
+                  {section.title}
+                </a>
+              ))}
+            </nav>
+          </aside>
+
+          <article className="surface overflow-hidden px-5 sm:px-8">
+            {sections.map((section, index) => (
+              <section key={section.title} id={`terms-${index + 1}`} className="scroll-mt-28 border-b border-neutral-200 py-7 last:border-0 sm:py-8">
+                <div className="flex items-start gap-4">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-xs font-black text-primary">{String(index + 1).padStart(2, '0')}</span>
+                  <div>
+                    <h2 className="text-xl font-bold">{section.title.replace(/^\d+\.\s*/, '')}</h2>
+                    <div className="mt-3 space-y-3 text-sm leading-7 text-muted sm:text-base">
+                      {section.paragraphs.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+                    </div>
+                  </div>
+                </div>
+              </section>
+            ))}
+          </article>
         </div>
-      </div>
-    </section>
+      </section>
+    </>
   );
 }

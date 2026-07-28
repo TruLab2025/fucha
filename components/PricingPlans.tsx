@@ -33,7 +33,7 @@ export default function PricingPlans() {
           <h2 className="text-2xl font-bold">FREE</h2>
           <p className="text-3xl font-bold text-primary">0 zł</p>
           <ul className="space-y-2 text-sm">
-            <li>✓ 5 kontaktów miesięcznie</li>
+            <li>✓ 5 kontaktów na start</li>
             <li>✓ Wgląd w dostępnych ludzi do pracy</li>
             <li>✓ Odkrywanie numerów telefonu</li>
             <li>✗ Bez limitu kontaktów</li>

@@ -1,13 +1,13 @@
 // components/JobForm.tsx
 "use client";
 import Link from 'next/link';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm, Controller, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import ReactDatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
+import Icon, { IconName } from './Icon';
 
 const jobSchema = z.object({
   title: z.string().min(1, { message: 'Nazwa jest wymagana' }),
@@ -89,12 +89,12 @@ const provinces: Record<string,string[]> = {
   'Zachodniopomorskie': ['Szczecin','Koszalin'],
 };
 
-const categories: { value: 'Transport' | 'Ogród' | 'Budowa' | 'Magazyn' | 'Inne'; icon: string; }[] = [
-  { value: 'Transport', icon: '🚚' },
-  { value: 'Ogród', icon: '🌿' },
-  { value: 'Budowa', icon: '🔨' },
-  { value: 'Magazyn', icon: '📦' },
-  { value: 'Inne', icon: '➕' },
+const categories: { value: 'Transport' | 'Ogród' | 'Budowa' | 'Magazyn' | 'Inne'; icon: IconName; }[] = [
+  { value: 'Transport', icon: 'transport' },
+  { value: 'Ogród', icon: 'leaf' },
+  { value: 'Budowa', icon: 'hammer' },
+  { value: 'Magazyn', icon: 'package' },
+  { value: 'Inne', icon: 'plus' },
 ];
 
 const formatDateForInput = (date: Date) => {
@@ -119,6 +119,8 @@ export default function JobForm() {
   const searchParams = useSearchParams();
   const [success, setSuccess] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const successHeadingRef = useRef<HTMLHeadingElement>(null);
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const defaultValues = useMemo<JobInput>(() => {
     const allowedCategories = ['Transport','Ogród','Budowa','Magazyn','Inne'];
@@ -168,6 +170,16 @@ export default function JobForm() {
     setSubmitError(null);
   }, [defaultValues, reset]);
 
+  useEffect(() => {
+    if (success) successHeadingRef.current?.focus();
+  }, [success]);
+
+  useEffect(() => {
+    return () => {
+      if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
+    };
+  }, []);
+
   const provinceField = register('province');
   const phoneField = register('phone');
   const selectedProvince = watch('province');
@@ -188,7 +200,7 @@ export default function JobForm() {
 
     if (res.ok) {
       setSuccess(true);
-      setTimeout(() => {
+      redirectTimerRef.current = setTimeout(() => {
         router.push('/jobs');
       }, 5000);
       return;
@@ -199,253 +211,394 @@ export default function JobForm() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl rounded-2xl bg-white p-6 shadow-sm sm:p-8">
+    <div className="surface mx-auto max-w-2xl overflow-hidden">
       {success ? (
-        <div className="p-6 bg-green-100 text-green-800 rounded-lg text-center space-y-4">
-          <p>Ogłoszenie opublikowane! Za chwilę przejdziesz do listy fuch.</p>
-          <p>
-            Możesz też <Link href="/jobs" className="text-primary underline">zobaczyć listę fuch</Link> wcześniej.
-          </p>
+        <div role="status" aria-live="polite" className="space-y-5 bg-primary-50 px-6 py-12 text-center sm:px-10">
+          <span
+            className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-2xl text-white shadow-lg shadow-primary-200/60"
+            aria-hidden="true"
+          >
+            <Icon name="check" size={25} />
+          </span>
+          <div className="space-y-2">
+            <h2 ref={successHeadingRef} tabIndex={-1} className="text-2xl font-bold outline-none">Ogłoszenie opublikowane</h2>
+            <p className="text-sm leading-6 text-muted">
+              Za chwilę przejdziesz do listy fuch. Możesz też otworzyć ją od razu.
+            </p>
+          </div>
           <Link
             href="/jobs"
-            className="inline-flex items-center justify-center rounded-lg bg-primary px-5 py-2 font-medium text-white transition hover:bg-blue-700"
+            className="btn-primary"
           >
             Przejdź do listy teraz
           </Link>
         </div>
       ) : (
-        <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onFormSubmit)}>
+          <div className="border-b border-neutral-200 bg-neutral-50/80 px-5 py-5 sm:px-8 sm:py-6">
+            <p className="text-sm font-semibold text-primary">Krótko i konkretnie</p>
+            <h2 className="mt-1 text-2xl font-bold">Opowiedz, kiedy możesz pomóc</h2>
+            <p className="mt-2 text-sm leading-6 text-muted">
+              Uzupełnij najważniejsze informacje. Całość zajmuje tylko kilka minut.
+            </p>
+          </div>
+
           {submitError && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {submitError}
+            <div className="mx-5 mt-6 flex gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700 sm:mx-8" role="alert">
+              <span className="font-bold" aria-hidden="true">!</span>
+              <span>{submitError}</span>
             </div>
           )}
-          <div>
-            <label className="block font-medium">Nazwa fuchy</label>
-            <input {...register('title')} className={`w-full border p-2 rounded ${errors.title ? 'border-red-500' : ''}`} />
-            {errors.title && <p className="text-red-500">{errors.title.message}</p>}
-          </div>
-          <div>
-            <label className="block font-medium">Opis</label>
-            <textarea {...register('description')} className={`w-full border p-2 rounded ${errors.description ? 'border-red-500' : ''}`} />
-            {errors.description && <p className="text-red-500">{errors.description.message}</p>}
-          </div>
-          <div className="grid grid-cols-2 gap-4">
+
+          <fieldset className="space-y-6 border-0 px-5 py-7 sm:px-8 sm:py-8">
+            <legend className="sr-only">Podstawowe informacje</legend>
+            <div className="flex items-start gap-3">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-sm font-bold text-primary">1</span>
+              <div>
+                <h3 className="text-lg font-bold">Podstawowe informacje</h3>
+                <p className="mt-1 text-sm leading-6 text-muted">Napisz, w czym możesz pomóc i gdzie jesteś dostępny.</p>
+              </div>
+            </div>
+
             <div>
-              <label className="block font-medium">Województwo</label>
-              <select
-                {...provinceField}
-                className={`w-full border p-2 rounded ${errors.province ? 'border-red-500' : ''}`}
-                onChange={(e) => {
-                  provinceField.onChange(e);
-                  const prov = e.target.value;
-                  const cities = provinces[prov] || [];
-                  setValue('city', cities[0] || '');
-                }}
-              >
-                <option value="">-- wybierz --</option>
-                {Object.keys(provinces).map(p => (
-                  <option key={p} value={p}>{p}</option>
-                ))}
-              </select>
-              {errors.province && <p className="text-red-500">{errors.province.message}</p>}
+              <label className="field-label" htmlFor="job-title">Nazwa fuchy</label>
+              <input
+                id="job-title"
+                {...register('title')}
+                placeholder="np. Pomogę przy przeprowadzce"
+                aria-invalid={Boolean(errors.title)}
+                aria-describedby={errors.title ? 'job-title-error' : undefined}
+                className={`min-h-12 w-full ${errors.title ? 'border-red-400' : ''}`}
+              />
+              {errors.title && <p id="job-title-error" className="field-error">{errors.title.message}</p>}
             </div>
+
             <div>
-              <label className="block font-medium">Miasto</label>
-              <input list="city-list" placeholder="Wybierz miasto" {...register('city')} className={`w-full border p-2 rounded ${errors.city ? 'border-red-500' : ''}`} />
-              <datalist id="city-list">
-                {cityOptions.map(c => (
-                  <option key={c} value={c} />
-                ))}
-              </datalist>
-              {errors.city && <p className="text-red-500">{errors.city.message}</p>}
+              <label className="field-label" htmlFor="job-description">Opis</label>
+              <textarea
+                id="job-description"
+                {...register('description')}
+                placeholder="Dodaj kilka zdań o swoim doświadczeniu, zakresie pomocy i ważnych szczegółach."
+                aria-invalid={Boolean(errors.description)}
+                aria-describedby={errors.description ? 'job-description-error' : undefined}
+                className={`min-h-32 w-full ${errors.description ? 'border-red-400' : ''}`}
+              />
+              {errors.description && <p id="job-description-error" className="field-error">{errors.description.message}</p>}
             </div>
-          </div>
-          <div>
-            <label className="block font-medium">Kategoria</label>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {categories.map(cat => (
-                <button
-                  type="button"
-                  key={cat.value}
-                  className={`flex items-center space-x-1 px-3 py-1 rounded-lg border ${
-                    watch('category') === cat.value ? 'bg-primary text-white' : 'bg-white'
-                  }`}
-                  onClick={() => setValue('category', cat.value)}
-                >
-                  <span>{cat.icon}</span>
-                  <span>{cat.value}</span>
-                </button>
-              ))}
-            </div>
-            {errors.category && <p className="text-red-500">{errors.category.message}</p>}
-          </div>
-          <div>
-            <label className="block font-medium">Dostępność</label>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {availabilityModes.map((mode) => (
-                <button
-                  type="button"
-                  key={mode.value}
-                  className={`rounded-lg border px-3 py-1 ${
-                    availabilityMode === mode.value ? 'bg-primary text-white' : 'bg-white'
-                  }`}
-                  onClick={() => {
-                    setValue('availability_mode', mode.value);
-                    if (mode.value === 'single') {
-                      setValue('available_to', '');
-                    }
+
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div>
+                <label className="field-label" htmlFor="job-province">Województwo</label>
+                <select
+                  id="job-province"
+                  {...provinceField}
+                  aria-invalid={Boolean(errors.province)}
+                  aria-describedby={errors.province ? 'job-province-error' : undefined}
+                  className={`min-h-12 w-full ${errors.province ? 'border-red-400' : ''}`}
+                  onChange={(e) => {
+                    provinceField.onChange(e);
+                    const prov = e.target.value;
+                    const cities = provinces[prov] || [];
+                    setValue('city', cities[0] || '');
                   }}
                 >
-                  {mode.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className={`grid gap-4 ${availabilityMode === 'range' ? 'sm:grid-cols-2' : 'grid-cols-1'}`}>
-            <div>
-              <label className="block font-medium">{availabilityMode === 'range' ? 'Od kiedy?' : 'Data dostępności'}</label>
-              <Controller
-                control={control}
-                name="available_date"
-                defaultValue={formatDateForInput(new Date())}
-                render={({ field }) => (
-                  <ReactDatePicker
-                    className={`w-full border p-2 rounded ${errors.available_date ? 'border-red-500' : ''}`}
-                    selected={field.value ? parseDateFromInput(field.value) : null}
-                    onChange={(date: Date | null) => {
-                      field.onChange(date ? formatDateForInput(date) : '');
-                    }}
-                    dateFormat="yyyy-MM-dd"
-                    minDate={new Date()}
-                  />
-                )}
-              />
-              {errors.available_date && <p className="text-red-500">{errors.available_date.message}</p>}
-            </div>
-            {availabilityMode === 'range' && (
+                  <option value="">-- wybierz --</option>
+                  {Object.keys(provinces).map(p => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+                {errors.province && <p id="job-province-error" className="field-error">{errors.province.message}</p>}
+              </div>
               <div>
-                <label className="block font-medium">Do kiedy?</label>
+                <label className="field-label" htmlFor="job-city">Miasto</label>
+                <input
+                  id="job-city"
+                  list="city-list"
+                  placeholder="Wybierz miasto"
+                  {...register('city')}
+                  aria-invalid={Boolean(errors.city)}
+                  aria-describedby={errors.city ? 'job-city-error' : undefined}
+                  className={`min-h-12 w-full ${errors.city ? 'border-red-400' : ''}`}
+                />
+                <datalist id="city-list">
+                  {cityOptions.map(c => (
+                    <option key={c} value={c} />
+                  ))}
+                </datalist>
+                {errors.city && <p id="job-city-error" className="field-error">{errors.city.message}</p>}
+              </div>
+            </div>
+
+            <div>
+              <span className="field-label">Kategoria</span>
+              <div className="flex flex-wrap gap-2">
+                {categories.map(cat => (
+                  <button
+                    type="button"
+                    key={cat.value}
+                    aria-pressed={watch('category') === cat.value}
+                    className={`choice-chip min-h-12 ${
+                      watch('category') === cat.value
+                        ? 'border-primary bg-primary text-white hover:border-primary-600 hover:bg-primary-600 hover:text-white'
+                        : ''
+                    }`}
+                    onClick={() => setValue('category', cat.value)}
+                  >
+                    <Icon name={cat.icon} size={18} />
+                    <span>{cat.value}</span>
+                  </button>
+                ))}
+              </div>
+              {errors.category && <p className="field-error">{errors.category.message}</p>}
+            </div>
+          </fieldset>
+
+          <fieldset className="space-y-6 border-0 border-t border-neutral-200 bg-neutral-50/50 px-5 py-7 sm:px-8 sm:py-8">
+            <legend className="sr-only">Dostępność i wynagrodzenie</legend>
+            <div className="flex items-start gap-3">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-sm font-bold text-primary">2</span>
+              <div>
+                <h3 className="text-lg font-bold">Dostępność i stawka</h3>
+                <p className="mt-1 text-sm leading-6 text-muted">Określ termin i wybierz sposób rozliczenia.</p>
+              </div>
+            </div>
+
+            <div>
+              <span className="field-label">Dostępność</span>
+              <div className="flex flex-wrap gap-2">
+                {availabilityModes.map((mode) => (
+                  <button
+                    type="button"
+                    key={mode.value}
+                    aria-pressed={availabilityMode === mode.value}
+                    className={`choice-chip min-h-12 ${
+                      availabilityMode === mode.value
+                        ? 'border-primary bg-primary text-white hover:border-primary-600 hover:bg-primary-600 hover:text-white'
+                        : ''
+                    }`}
+                    onClick={() => {
+                      setValue('availability_mode', mode.value);
+                      if (mode.value === 'single') {
+                        setValue('available_to', '');
+                      }
+                    }}
+                  >
+                    {mode.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className={`grid gap-5 ${availabilityMode === 'range' ? 'sm:grid-cols-2' : 'grid-cols-1'}`}>
+              <div>
+                <label className="field-label" htmlFor="job-available-date">{availabilityMode === 'range' ? 'Od kiedy?' : 'Data dostępności'}</label>
                 <Controller
                   control={control}
-                  name="available_to"
+                  name="available_date"
+                  defaultValue={formatDateForInput(new Date())}
                   render={({ field }) => (
                     <ReactDatePicker
-                      className={`w-full border p-2 rounded ${errors.available_to ? 'border-red-500' : ''}`}
+                      id="job-available-date"
+                      className={`min-h-12 w-full ${errors.available_date ? 'border-red-400' : ''}`}
+                      wrapperClassName="w-full"
                       selected={field.value ? parseDateFromInput(field.value) : null}
                       onChange={(date: Date | null) => {
                         field.onChange(date ? formatDateForInput(date) : '');
                       }}
                       dateFormat="yyyy-MM-dd"
-                      minDate={parseDateFromInput(watch('available_date')) || new Date()}
+                      minDate={new Date()}
+                      aria-invalid={errors.available_date ? 'true' : 'false'}
+                      aria-describedby={errors.available_date ? 'job-available-date-error' : undefined}
                     />
                   )}
                 />
-                {errors.available_to && <p className="text-red-500">{errors.available_to.message}</p>}
+                {errors.available_date && <p id="job-available-date-error" className="field-error">{errors.available_date.message}</p>}
               </div>
-            )}
-          </div>
-          <div>
-            <label className="block font-medium">Typ stawki</label>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {rateTypes.map((item) => (
-                <button
-                  type="button"
-                  key={item.value}
-                  className={`rounded-lg border px-3 py-1 ${
-                    rateType === item.value ? 'bg-primary text-white' : 'bg-white'
-                  }`}
-                  onClick={() => {
-                    setValue('rate_type', item.value);
-                    if (item.value === 'daily') {
-                      setValue('available_hours', '');
-                    }
-                  }}
-                >
-                  {item.label}
-                </button>
-              ))}
+              {availabilityMode === 'range' && (
+                <div>
+                  <label className="field-label" htmlFor="job-available-to">Do kiedy?</label>
+                  <Controller
+                    control={control}
+                    name="available_to"
+                    render={({ field }) => (
+                      <ReactDatePicker
+                        id="job-available-to"
+                        className={`min-h-12 w-full ${errors.available_to ? 'border-red-400' : ''}`}
+                        wrapperClassName="w-full"
+                        selected={field.value ? parseDateFromInput(field.value) : null}
+                        onChange={(date: Date | null) => {
+                          field.onChange(date ? formatDateForInput(date) : '');
+                        }}
+                      dateFormat="yyyy-MM-dd"
+                      minDate={parseDateFromInput(watch('available_date')) || new Date()}
+                      aria-invalid={errors.available_to ? 'true' : 'false'}
+                      aria-describedby={errors.available_to ? 'job-available-to-error' : undefined}
+                    />
+                  )}
+                />
+                  {errors.available_to && <p id="job-available-to-error" className="field-error">{errors.available_to.message}</p>}
+                </div>
+              )}
             </div>
-          </div>
-          {rateType === 'hourly' && (
+
             <div>
-              <label className="block font-medium">Ile godzin mogę pracować?</label>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {hourPresets.map(h => (
+              <span className="field-label">Typ stawki</span>
+              <div className="flex flex-wrap gap-2">
+                {rateTypes.map((item) => (
                   <button
                     type="button"
-                    key={h}
-                    className={`px-3 py-1 rounded-lg border ${
-                      watch('available_hours') === String(h) ? 'bg-primary text-white' : 'bg-white'
+                    key={item.value}
+                    aria-pressed={rateType === item.value}
+                    className={`choice-chip min-h-12 ${
+                      rateType === item.value
+                        ? 'border-primary bg-primary text-white hover:border-primary-600 hover:bg-primary-600 hover:text-white'
+                        : ''
                     }`}
-                    onClick={() => setValue('available_hours', String(h))}
-                  >{h}h</button>
+                    onClick={() => {
+                      setValue('rate_type', item.value);
+                      if (item.value === 'daily') {
+                        setValue('available_hours', '');
+                      }
+                    }}
+                  >
+                    {item.label}
+                  </button>
                 ))}
               </div>
-              {errors.available_hours && <p className="text-red-500">{errors.available_hours.message}</p>}
             </div>
-          )}
-          <div>
-            <label className="block font-medium">Wynagrodzenie ({rateType === 'hourly' ? 'zł/h' : 'zł/dzień'})</label>
-            <div className="flex flex-wrap gap-2 mt-1">
-              {ratePresets.map(r => (
-                <button
-                  type="button"
-                  key={r}
-                  className={`px-3 py-1 rounded-lg border ${
-                    watch('rate') === String(r) ? 'bg-primary text-white' : 'bg-white'
-                  }`}
-                  onClick={() => setValue('rate', String(r))}
-                >{r}</button>
-              ))}
-            </div>
-            <input placeholder="np. 200" {...register('rate')} className={`w-full border p-2 rounded mt-2 ${errors.rate ? 'border-red-500' : ''}`} />
-            {errors.rate && <p className="text-red-500">{errors.rate.message}</p>}
-            {rateType === 'hourly' && Number.isFinite(rateNumber) && rateNumber > 0 && (
-              <p className="mt-1 text-xs text-gray-500">Orientacyjnie: około {rateNumber * 8} zł za 8h.</p>
+
+            {rateType === 'hourly' && (
+              <div>
+                <span className="field-label">Ile godzin mogę pracować?</span>
+                <div
+                  className="flex flex-wrap gap-2"
+                  role="group"
+                  aria-label="Liczba dostępnych godzin"
+                  aria-invalid={Boolean(errors.available_hours)}
+                  aria-describedby={errors.available_hours ? 'job-available-hours-error' : undefined}
+                >
+                  {hourPresets.map(h => (
+                    <button
+                      type="button"
+                      key={h}
+                      aria-pressed={watch('available_hours') === String(h)}
+                      className={`choice-chip min-h-12 min-w-12 ${
+                        watch('available_hours') === String(h)
+                          ? 'border-primary bg-primary text-white hover:border-primary-600 hover:bg-primary-600 hover:text-white'
+                          : ''
+                      }`}
+                      onClick={() => setValue('available_hours', String(h))}
+                    >{h}h</button>
+                  ))}
+                </div>
+                {errors.available_hours && <p id="job-available-hours-error" className="field-error">{errors.available_hours.message}</p>}
+              </div>
             )}
-          </div>
-          {/* honeypot - ukryte pole dla botów */}
-          <input type="text" {...register('hp')} className="hidden" tabIndex={-1} autoComplete="off" />
-          <div className="grid grid-cols-2 gap-4">
+
             <div>
-              <label className="block font-medium">Telefon</label>
+              <label className="field-label" htmlFor="job-rate">Wynagrodzenie ({rateType === 'hourly' ? 'zł/h' : 'zł/dzień'})</label>
+              <div className="mb-3 flex flex-wrap gap-2">
+                {ratePresets.map(r => (
+                  <button
+                    type="button"
+                    key={r}
+                    aria-pressed={watch('rate') === String(r)}
+                    className={`choice-chip min-h-12 min-w-12 ${
+                      watch('rate') === String(r)
+                        ? 'border-primary bg-primary text-white hover:border-primary-600 hover:bg-primary-600 hover:text-white'
+                        : ''
+                    }`}
+                    onClick={() => setValue('rate', String(r))}
+                  >{r}</button>
+                ))}
+              </div>
               <input
-                type="tel"
-                placeholder="123456789"
-                inputMode="numeric"
-                maxLength={9}
-                {...phoneField}
-                onChange={(e) => {
-                  const nextValue = e.target.value.replace(/\D/g, '').slice(0, 9);
-                  e.target.value = nextValue;
-                  phoneField.onChange(e);
-                }}
-                className={`w-full border p-2 rounded ${errors.phone ? 'border-red-500' : ''}`}
+                id="job-rate"
+                placeholder="np. 200"
+                inputMode="decimal"
+                {...register('rate')}
+                aria-invalid={Boolean(errors.rate)}
+                aria-describedby={errors.rate ? 'job-rate-error' : undefined}
+                className={`min-h-12 w-full ${errors.rate ? 'border-red-400' : ''}`}
               />
-              <p className="mt-1 text-xs text-gray-500">Numer zobaczą tylko osoby, które będą chciały się z Tobą skontaktować.</p>
-              {errors.phone && <p className="text-red-500">{errors.phone.message}</p>}
+              {errors.rate && <p id="job-rate-error" className="field-error">{errors.rate.message}</p>}
+              {rateType === 'hourly' && Number.isFinite(rateNumber) && rateNumber > 0 && (
+                <p className="mt-2 text-xs leading-5 text-muted">Orientacyjnie: około {rateNumber * 8} zł za 8h.</p>
+              )}
             </div>
+          </fieldset>
+
+          <fieldset className="space-y-6 border-0 border-t border-neutral-200 px-5 py-7 sm:px-8 sm:py-8">
+            <legend className="sr-only">Kontakt i publikacja</legend>
+            <div className="flex items-start gap-3">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-sm font-bold text-primary">3</span>
+              <div>
+                <h3 className="text-lg font-bold">Kontakt i publikacja</h3>
+                <p className="mt-1 text-sm leading-6 text-muted">Podaj dane, przez które zainteresowane osoby mogą się odezwać.</p>
+              </div>
+            </div>
+
+            {/* honeypot - ukryte pole dla botów */}
+            <input type="text" {...register('hp')} className="hidden" tabIndex={-1} autoComplete="off" />
+
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div>
+                <label className="field-label" htmlFor="job-phone">Telefon</label>
+                <input
+                  id="job-phone"
+                  type="tel"
+                  autoComplete="tel"
+                  placeholder="123456789"
+                  inputMode="numeric"
+                  maxLength={9}
+                  {...phoneField}
+                  onChange={(e) => {
+                    const nextValue = e.target.value.replace(/\D/g, '').slice(0, 9);
+                    e.target.value = nextValue;
+                    phoneField.onChange(e);
+                  }}
+                  aria-invalid={Boolean(errors.phone)}
+                  aria-describedby={errors.phone ? 'job-phone-help job-phone-error' : 'job-phone-help'}
+                  className={`min-h-12 w-full ${errors.phone ? 'border-red-400' : ''}`}
+                />
+                <p id="job-phone-help" className="mt-2 text-xs leading-5 text-muted">Numer zobaczą tylko osoby, które będą chciały się z Tobą skontaktować.</p>
+                {errors.phone && <p id="job-phone-error" className="field-error">{errors.phone.message}</p>}
+              </div>
+              <div>
+                <label className="field-label" htmlFor="job-email">Email</label>
+                <input
+                  id="job-email"
+                  type="email"
+                  autoComplete="email"
+                  {...register('email')}
+                  aria-invalid={Boolean(errors.email)}
+                  aria-describedby={errors.email ? 'job-email-help job-email-error' : 'job-email-help'}
+                  className={`min-h-12 w-full ${errors.email ? 'border-red-400' : ''}`}
+                />
+                <p id="job-email-help" className="mt-2 text-xs leading-5 text-muted">Przyda się, jeśli ktoś woli odezwać się mailowo zamiast dzwonić.</p>
+                {errors.email && <p id="job-email-error" className="field-error">{errors.email.message}</p>}
+              </div>
+            </div>
+
             <div>
-              <label className="block font-medium">Email</label>
-              <input type="email" {...register('email')} className={`w-full border p-2 rounded ${errors.email ? 'border-red-500' : ''}`} />
-              <p className="mt-1 text-xs text-gray-500">Przyda się, jeśli ktoś woli odezwać się mailowo zamiast dzwonić.</p>
-              {errors.email && <p className="text-red-500">{errors.email.message}</p>}
+              <div className={`flex items-start gap-3 rounded-2xl border px-4 py-4 ${errors.terms ? 'border-red-300 bg-red-50/60' : 'border-neutral-200 bg-neutral-50'}`}>
+                <input type="checkbox" {...register('terms')} id="terms" className="mt-0.5" aria-invalid={Boolean(errors.terms)} aria-describedby={errors.terms ? 'job-terms-error' : undefined} />
+                <label htmlFor="terms" className="text-sm leading-6 text-neutral-700">
+                  Akceptuję <Link href="/regulamin" className="font-semibold text-primary underline decoration-primary-200 underline-offset-4 hover:text-primary-700">regulamin</Link>
+                </label>
+              </div>
+              {errors.terms && <p id="job-terms-error" className="field-error">{errors.terms.message}</p>}
             </div>
-          </div>
-          <div className="flex items-center mt-4">
-            <input type="checkbox" {...register('terms')} id="terms" className="mr-2" />
-            <label htmlFor="terms" className="text-sm">
-              Akceptuję <Link href="/regulamin" className="underline">regulamin</Link>
-            </label>
-          </div>
-          {errors.terms && <p className="text-red-500 text-sm">{errors.terms.message}</p>}
-          <button type="submit" disabled={isSubmitting} className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-blue-700 w-full">
-            {isSubmitting ? 'Wysyłanie...' : 'Dodaj ogłoszenie'}
-          </button>
-          <p className="text-center text-sm text-gray-500">
-            Publikacja zajmuje chwilę. Po dodaniu ogłoszenia od razu pojawisz się na liście.
-          </p>
+
+            <div className="border-t border-neutral-200 pt-6">
+              <button type="submit" disabled={isSubmitting} className="btn-primary w-full">
+                {isSubmitting ? 'Wysyłanie...' : 'Dodaj ogłoszenie'}
+              </button>
+              <p className="mt-3 text-center text-xs leading-5 text-muted">
+                Publikacja zajmuje chwilę. Po dodaniu ogłoszenia od razu pojawisz się na liście.
+              </p>
+            </div>
+          </fieldset>
         </form>
       )}
     </div>

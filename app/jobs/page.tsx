@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { getListings } from '../../lib/db';
 import JobCard from '../../components/JobCard';
 import JobsFilters from '../../components/JobsFilters';
+import Icon from '../../components/Icon';
 
 interface JobsPageProps {
   searchParams?: {
@@ -46,16 +47,31 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
   const paginatedListings = listings.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
-    <section className="py-12">
-      <div className="container mx-auto">
-        <div className="mx-auto mb-8 max-w-3xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-primary">Dla osób szukających pracy</p>
-          <h1 className="mt-3 text-3xl font-bold sm:text-4xl">Podejrzyj inne fuchy i skopiuj podobną dla siebie</h1>
-          <p className="mt-4 text-gray-600 leading-7">
-            Ta lista pomaga Ci zobaczyć, jak ogłaszają się inni, jakie stawki podają i jak opisują swoją dostępność. Przeglądasz {listings.length} wyników i możesz jednym kliknięciem przenieść dane do własnego formularza.
-          </p>
+    <>
+      <section className="noise-wash border-b border-neutral-200 py-14 sm:py-20">
+        <div className="container mx-auto">
+          <div className="max-w-3xl">
+            <span className="eyebrow"><Icon name="copy" size={15} /> Baza inspiracji</span>
+            <h1 className="mt-5 text-4xl font-black leading-[1.03] sm:text-5xl lg:text-6xl">
+              Nie zaczynaj od pustego formularza.
+            </h1>
+            <p className="section-copy mt-5 max-w-2xl">
+              Zobacz, jak inni opisują swoją dostępność i stawki. Znajdź podobny przykład, a potem użyj go jako wzoru dla własnego ogłoszenia.
+            </p>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <span className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-ink shadow-sm ring-1 ring-neutral-200">
+                <span className="text-xl font-black text-primary">{listings.length}</span> dostępnych przykładów
+              </span>
+              <Link href="/add" className="btn-primary min-h-11 py-2.5">
+                Dodaj własną fuchę
+                <Icon name="arrow-right" size={17} />
+              </Link>
+            </div>
+          </div>
         </div>
+      </section>
 
+      <section className="container mx-auto py-10 sm:py-14">
         <JobsFilters
           initialProvince={searchParams?.province}
           initialCity={searchParams?.city}
@@ -63,18 +79,29 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
           initialDate={searchParams?.date}
         />
 
-        <div className="mb-8 rounded-2xl bg-blue-50 px-6 py-5 text-center text-sm text-blue-900">
-          <p>
-            💡 <strong>Jak używać tej strony:</strong> znajdź ogłoszenie podobne do swojego, podejrzyj stawkę i kliknij <strong>Duplikuj fuchę</strong>, żeby nie wpisywać wszystkiego od zera.
+        <div className="mb-8 flex items-start gap-3 rounded-2xl border border-primary-100 bg-primary-50 px-5 py-4 text-sm leading-6 text-primary-900">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-primary shadow-sm">
+            <Icon name="sparkles" size={18} />
+          </span>
+          <p className="pt-1.5">
+            <strong>Jak to działa:</strong> wybierz podobne ogłoszenie i kliknij „Użyj jako wzoru”. Treść, lokalizacja i termin przeniosą się do formularza, a Ty tylko poprawisz szczegóły.
           </p>
         </div>
 
         {paginatedListings.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-600">Brak dostępnych fuch</p>
+          <div className="surface px-6 py-16 text-center">
+            <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-neutral-100 text-neutral-500">
+              <Icon name="search" size={24} />
+            </span>
+            <h2 className="mt-5 text-xl font-bold">Brak pasujących przykładów</h2>
+            <p className="mt-2 text-sm text-muted">Wyczyść część filtrów i spróbuj ponownie.</p>
           </div>
         ) : (
           <>
+            <div className="mb-5 flex items-center justify-between gap-4">
+              <h2 className="text-xl font-bold">Przykładowe ogłoszenia</h2>
+              <span className="text-sm font-semibold text-muted">Strona {currentPage} z {totalPages}</span>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {paginatedListings.map(listing => (
                 <JobCard key={listing.id} job={listing} />
@@ -85,22 +112,24 @@ export default async function JobsPage({ searchParams }: JobsPageProps) {
               <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
                 <Link
                   href={buildPageHref(searchParams, Math.max(1, currentPage - 1))}
-                  className={`rounded-lg px-4 py-2 ${currentPage === 1 ? 'pointer-events-none bg-gray-100 text-gray-400' : 'bg-white text-gray-700 shadow-sm hover:bg-gray-50'}`}
+                  aria-disabled={currentPage === 1}
+                  className={`btn-secondary ${currentPage === 1 ? 'pointer-events-none opacity-45' : ''}`}
                 >
                   Wstecz
                 </Link>
-                <span className="text-sm text-gray-600">Strona {currentPage} z {totalPages}</span>
                 <Link
                   href={buildPageHref(searchParams, Math.min(totalPages, currentPage + 1))}
-                  className={`rounded-lg px-4 py-2 ${currentPage === totalPages ? 'pointer-events-none bg-gray-100 text-gray-400' : 'bg-white text-gray-700 shadow-sm hover:bg-gray-50'}`}
+                  aria-disabled={currentPage === totalPages}
+                  className={`btn-secondary ${currentPage === totalPages ? 'pointer-events-none opacity-45' : ''}`}
                 >
                   Dalej
+                  <Icon name="arrow-right" size={17} />
                 </Link>
               </div>
             )}
           </>
         )}
-      </div>
-    </section>
+      </section>
+    </>
   );
 }
