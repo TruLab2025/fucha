@@ -7,7 +7,7 @@ import Icon from './Icon';
 
 const navLinks = [
   { href: '/#how-it-works', label: 'Jak to działa' },
-  { href: '/jobs', label: 'Podejrzyj fuchy' },
+  { href: '/jobs', label: 'Zobacz fuchy' },
   { href: '/#pricing', label: 'Cennik' },
   { href: '/faq', label: 'FAQ' },
 ];

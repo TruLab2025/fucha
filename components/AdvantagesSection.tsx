@@ -27,7 +27,7 @@ export default function AdvantagesSection() {
 
         <div className="grid gap-4 sm:grid-cols-2">
           {items.map((item, index) => (
-            <article key={item.title} className={`surface p-6 ${index === 1 ? 'sm:translate-y-6' : ''}`}>
+            <article key={item.title} className="surface p-6">
               <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-ink text-lime">
                 <Icon name={item.icon} size={21} />
               </span>

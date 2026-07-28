@@ -5,7 +5,10 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "postbuild": "node scripts/prepare-release.mjs",
+    "start": "node server.js",
+    "start:release": "node server.js",
+    "check": "tsc --noEmit",
     "lint": "next lint"
   },
   "dependencies": {

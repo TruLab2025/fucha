@@ -11,7 +11,7 @@ const workerSteps: { title: string; desc: string; icon: IconName }[] = [
 const companySteps: { title: string; desc: string; icon: IconName }[] = [
   { title: 'Ustaw konkretne filtry', desc: 'Wybierz miasto, termin i rodzaj pomocy, której teraz potrzebujesz.', icon: 'filter' },
   { title: 'Sprawdź dostępne osoby', desc: 'Od razu widzisz opis, stawkę i realną dostępność kandydatów.', icon: 'users' },
-  { title: 'Odkryj kontakt', desc: 'Masz 5 bezpłatnych numerów na start. W PRO kontaktujesz się bez limitu.', icon: 'lock' },
+  { title: 'Odkryj kontakt', desc: '5 numerów na start. W PRO bez limitu.', icon: 'lock' },
 ];
 
 function PathCard({
@@ -32,7 +32,7 @@ function PathCard({
   const isBlue = accent === 'blue';
 
   return (
-    <article className={`relative overflow-hidden rounded-4xl border bg-white p-6 shadow-card sm:p-8 ${isBlue ? 'border-primary-100' : 'border-green-100'}`}>
+    <article className={`relative flex h-full flex-col overflow-hidden rounded-4xl border bg-white p-6 shadow-card sm:p-8 ${isBlue ? 'border-primary-100' : 'border-green-100'}`}>
       <div className={`absolute right-0 top-0 h-32 w-32 rounded-bl-full ${isBlue ? 'bg-primary-50' : 'bg-green-50'}`} aria-hidden="true" />
       <p className={`relative text-xs font-bold uppercase tracking-[0.18em] ${isBlue ? 'text-primary' : 'text-green-700'}`}>{label}</p>
       <h3 className="relative mt-3 max-w-sm text-2xl font-bold leading-tight sm:text-3xl">{title}</h3>
@@ -54,10 +54,12 @@ function PathCard({
         ))}
       </ol>
 
-      <Link href={href} className={`mt-8 w-full ${isBlue ? 'btn-primary' : 'btn-green'}`}>
-        {cta}
-        <Icon name="arrow-right" size={18} />
-      </Link>
+      <div className="mt-auto pt-8">
+        <Link href={href} className={`w-full ${isBlue ? 'btn-primary' : 'btn-green'}`}>
+          {cta}
+          <Icon name="arrow-right" size={18} />
+        </Link>
+      </div>
     </article>
   );
 }

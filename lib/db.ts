@@ -1,5 +1,6 @@
 // lib/db.ts
 import { createClient } from '@supabase/supabase-js';
+import { createPool, type Pool } from 'mysql2/promise';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
@@ -56,7 +57,7 @@ type StorageDriver = 'memory' | 'supabase' | 'mysql';
 
 declare global {
   var demoListings: ListingRecord[];
-  var mysqlPool: any;
+  var mysqlPool: Pool | undefined;
 }
 
 const caregivingLongDescription = 'Doświadczenie w opiece, chętny, odpowiedzialny, zarabiaj sobie. Mogę pomóc przy codziennych obowiązkach, zakupach, spacerach, podaniu leków i spokojnym towarzyszeniu w domu. Zależy mi na stałej, uczciwej współpracy i jasnych zasadach.';
@@ -165,7 +166,6 @@ const getMysqlPool = async () => {
     return global.mysqlPool;
   }
 
-  const { createPool } = await import('mysql2/promise');
   global.mysqlPool = createPool({
     host: process.env.MYSQL_HOST,
     port: Number(process.env.MYSQL_PORT || 3306),
