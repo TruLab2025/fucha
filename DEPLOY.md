@@ -15,18 +15,30 @@ Produkcja otrzymuje gotowy release Next standalone. cPanel/Passenger nie urucham
 
 `npm run build` jest celowo zablokowane poza izolowanym pipeline'em. Chroni to działający dev server przed nadpisaniem `.next`.
 
+## Potwierdzony układ produkcji
+
+- SSH: `atilla@srv3.anyservers.com:2222`
+- Passenger Application Root i launcher: `/home6/atilla/repositories/Fucha24/server.js`
+- Passenger lifecycle: CloudLinux Node Selector dla `/home6/atilla/repositories/Fucha24`
+- Document Root: `/home6/atilla/public_html/fucha24`
+- Release root: `/home6/atilla/releases/fucha24`
+- Basic Auth istnieje pod `/home6/atilla/.htpasswds/public_html/fucha24`; pipeline używa wyłącznie lokalnych poświadczeń do smoke testu i go nie zmienia.
+
+Istniejący release `c3e5df5b4e27` pozostaje nietknięty. Nie tworzymy nowego Application Root ani nie zmieniamy konfiguracji Passenger.
+
+`/home6/atilla/repositories/Fucha24/server.js` jest stałym launcherem Passenger. Ładuje lokalny `.env.production`, a następnie uruchamia `release/server.js`. Pipeline utrzymuje `release` jako symlink do `/home6/atilla/releases/fucha24/current`; atomowe przełączenie `current` zmienia wersję aplikacji bez zmiany Application Root.
+
 ## Jednorazowa konfiguracja produkcji
 
 Na Mac mini utwórz plik `~/.config/fucha24/production.env` z prawami `0600`, kopiując [config/production.env.example](config/production.env.example). Wartości są lokalnymi sekretami i nie trafiają do Git.
 
-W cPanel jednorazowo:
+Na Mac mini jednorazowo:
 
-- autoryzuj publiczny klucz `/Users/mini/.ssh/id_ed25519.pub` dla wskazanego konta;
-- ustaw Node.js 22, Application root na `FUCHA_PROD_APP_ROOT` i Startup file na `server.js`;
-- utrzymaj w Application root nieśledzony `.env.production`;
-- upewnij się, że `server.js` z repo jest obecny oraz że katalog `tmp/` jest zapisywalny.
+- dodaj publiczny klucz `/Users/mini/.ssh/id_ed25519.pub` do istniejącego konta `atilla`;
+- utwórz lokalny profil na podstawie szablonu — nie zapisuj go w Git;
+- zachowaj istniejący nieśledzony `.env.production` w Application Root.
 
-`server.js` jest stałym launcherem Passenger. Ładuje lokalny `.env.production`, a następnie uruchamia `release/server.js`, gdzie `release` jest symlinkiem do `releases/current`.
+Nie zmieniaj ustawień Application Root, Startup file, Document Root, Basic Auth ani bazy.
 
 ## Deploy
 
@@ -42,6 +54,14 @@ Opcjonalnie można wskazać zatwierdzony commit z `origin/main`:
 npm run deploy:production -- --commit COMMIT_SHA
 ```
 
+Każdy deploy produkcyjny wymaga jawnego tekstu oczekiwanego na homepage. Opcjonalnie można również odrzucić poprzednie copy:
+
+```bash
+npm run deploy:production -- --commit COMMIT_SHA \
+  --expect-text 'OCZEKIWANY TEKST' \
+  --reject-text 'POPRZEDNI TEKST'
+```
+
 Pipeline:
 
 1. Rozwiązuje commit SHA i wymaga, aby był zawarty w `origin/main`.
@@ -51,8 +71,8 @@ Pipeline:
 5. Zapisuje release standalone z metadanymi SHA w `.release.json` oraz `public/_fucha-release.json`.
 6. Wysyła release do osobnego `releases/.<sha>.incoming-*`.
 7. Weryfikuje metadane, zmienia katalog na `releases/<sha>` i atomowo przełącza `releases/current`.
-8. Restartuje Passenger przez `touch tmp/restart.txt`.
-9. Wykonuje Basic-Auth smoke test pliku `_fucha-release.json` i wymaga zgodności SHA.
+8. Wykonuje cold start aplikacji przez CloudLinux Node Selector.
+9. Wykonuje Basic-Auth smoke test rzeczywistego homepage i wymaga oczekiwanego copy.
 
 W razie nieudanego smoke testu pipeline przełącza poprzedni `current` i ponownie restartuje Passenger. Release'y nie są automatycznie usuwane przez pierwszą wersję pipeline'u.
 
@@ -74,6 +94,6 @@ Prisma baseline i `prisma migrate deploy` zostaną dodane osobno, po świadomej 
 
 ## Rollback
 
-Pipeline wykonuje rollback automatycznie po błędzie smoke testu. Ręczny rollback to przełączenie `releases/current` na poprzedni release i `touch tmp/restart.txt`.
+Pipeline wykonuje rollback automatycznie po błędzie smoke testu. Ręczny rollback to przełączenie `releases/current` na poprzedni release i cold start aplikacji przez CloudLinux Node Selector.
 
 Rollback kodu nie cofa schematu DB; dlatego przyszłe migracje muszą być kompatybilne wstecz albo mieć osobną, zatwierdzoną procedurę.

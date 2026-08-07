@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
+import https from 'node:https';
 import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
@@ -11,14 +12,21 @@ const args = process.argv.slice(2);
 const dryRun = args.includes('--dry-run');
 const commitArgumentIndex = args.indexOf('--commit');
 const platformArgumentIndex = args.indexOf('--platform');
+const expectTextArgumentIndex = args.indexOf('--expect-text');
+const rejectTextArgumentIndex = args.indexOf('--reject-text');
 const requestedCommit = commitArgumentIndex >= 0 ? args[commitArgumentIndex + 1] : null;
 const requestedPlatform = platformArgumentIndex >= 0 ? args[platformArgumentIndex + 1] : null;
+const expectedHomepageText = expectTextArgumentIndex >= 0 ? args[expectTextArgumentIndex + 1] : null;
+const rejectedHomepageText = rejectTextArgumentIndex >= 0 ? args[rejectTextArgumentIndex + 1] : null;
 const profilePath = process.env.FUCHA_DEPLOY_PROFILE
   || path.join(os.homedir(), '.config', 'fucha24', 'production.env');
 
 if (commitArgumentIndex >= 0 && !requestedCommit) throw new Error('--commit requires a commit SHA or ref.');
 if (platformArgumentIndex >= 0 && !requestedPlatform) throw new Error('--platform requires a Docker platform, for example linux/arm64.');
+if (expectTextArgumentIndex >= 0 && !expectedHomepageText) throw new Error('--expect-text requires homepage text.');
+if (rejectTextArgumentIndex >= 0 && !rejectedHomepageText) throw new Error('--reject-text requires homepage text.');
 if (!dryRun && requestedPlatform) throw new Error('The production platform is detected from the cPanel host; --platform is only allowed with --dry-run.');
+if (!dryRun && !expectedHomepageText) throw new Error('Production deployment requires --expect-text for the homepage smoke test.');
 
 const report = {
   COMMIT: 'PENDING',
@@ -105,6 +113,60 @@ async function remote(profile, command, capture = false) {
   return run('ssh', sshArguments(profile, command), { capture });
 }
 
+async function uploadRelease(profile, releaseDirectory, incomingRelease) {
+  const sshCommand = ['ssh', ...sshArguments(profile, `tar -xzf - -C ${shellQuote(incomingRelease)}`)]
+    .map(shellQuote)
+    .join(' ');
+  const command = `tar --no-xattrs -C ${shellQuote(releaseDirectory)} -czf - . | ${sshCommand}`;
+  await run('/bin/sh', ['-c', command]);
+}
+
+function wait(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+async function smokeHomepage(profile) {
+  const authorization = `Basic ${Buffer.from(`${profile.FUCHA_PROD_BASIC_AUTH_USER}:${profile.FUCHA_PROD_BASIC_AUTH_PASSWORD}`).toString('base64')}`;
+  let lastError;
+
+  for (let attempt = 1; attempt <= 12; attempt += 1) {
+    try {
+      const target = new URL(`${profile.FUCHA_PROD_URL.replace(/\/$/, '')}/?_fucha_deploy=${Date.now()}-${attempt}`);
+      const response = await new Promise((resolve, reject) => {
+        const request = https.request(target, {
+          method: 'GET', headers: { Authorization: authorization, 'Cache-Control': 'no-cache' }, timeout: 30_000,
+        }, (result) => {
+          let body = '';
+          result.setEncoding('utf8');
+          result.on('data', (chunk) => { body += chunk; });
+          result.on('end', () => resolve({ statusCode: result.statusCode, body }));
+        });
+        request.on('timeout', () => request.destroy(new Error('smoke test timed out')));
+        request.on('error', reject);
+        request.end();
+      });
+      if (response.statusCode !== 200) throw new Error(`smoke test returned HTTP ${response.statusCode}`);
+      if (!response.body.includes(expectedHomepageText)) throw new Error('Homepage does not contain expected deployment text.');
+      if (rejectedHomepageText && response.body.includes(rejectedHomepageText)) throw new Error('Homepage still contains rejected deployment text.');
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt < 12) await wait(5_000);
+    }
+  }
+
+  throw lastError;
+}
+
+async function coldStartProductionApplication(profile) {
+  const selector = `cloudlinux-selector --json --interpreter nodejs --user ${shellQuote(profile.FUCHA_PROD_SSH_USER)} --app-root ${shellQuote(profile.FUCHA_PROD_APP_ROOT)}`;
+  await remote(profile, [
+    'set -eu',
+    `${selector.replace('cloudlinux-selector ', 'cloudlinux-selector stop ')} >/dev/null`,
+    `${selector.replace('cloudlinux-selector ', 'cloudlinux-selector start ')} >/dev/null`,
+  ].join('\n'));
+}
+
 async function resolveCommit() {
   const commit = await run('git', ['rev-parse', '--verify', `${requestedCommit || 'HEAD'}^{commit}`], { capture: true });
   const isOnMain = await execFileAsync('git', ['merge-base', '--is-ancestor', commit, 'origin/main'], { cwd: root })
@@ -172,6 +234,8 @@ async function deployRelease(profile, commit, releaseDirectory) {
   const incomingRelease = `${releasesRoot}/.${commit}.incoming-${process.pid}`;
   const currentLink = `${releasesRoot}/current`;
   const nextLink = `${releasesRoot}/.current-next-${process.pid}`;
+  const appReleaseLink = `${appRoot}/release`;
+  const appReleaseNext = `${appRoot}/.release-next-${process.pid}`;
 
   const preflight = [
     'set -eu', `test -d ${shellQuote(appRoot)}`, `test -f ${shellQuote(`${appRoot}/server.js`)}`,
@@ -187,8 +251,7 @@ async function deployRelease(profile, commit, releaseDirectory) {
     report.UPLOAD = `SKIPPED (release ${commit.slice(0, 7)} already present)`;
   } else {
     await remote(profile, `set -eu\ntest ! -e ${shellQuote(incomingRelease)}\nmkdir -p ${shellQuote(incomingRelease)}`);
-    const transport = `ssh -i ${profile.FUCHA_PROD_SSH_KEY} -p ${profile.FUCHA_PROD_SSH_PORT || '22'} -o BatchMode=yes -o StrictHostKeyChecking=yes`;
-    await run('rsync', ['-az', '--delete', '-e', transport, `${releaseDirectory}/`, `${profile.FUCHA_PROD_SSH_USER}@${profile.FUCHA_PROD_SSH_HOST}:${incomingRelease}/`]);
+    await uploadRelease(profile, releaseDirectory, incomingRelease);
     await remote(profile, [
       'set -eu', `test -f ${shellQuote(`${incomingRelease}/.release.json`)}`,
       `grep -F ${shellQuote(`"commit": "${commit}"`)} ${shellQuote(`${incomingRelease}/.release.json`)}`,
@@ -197,22 +260,19 @@ async function deployRelease(profile, commit, releaseDirectory) {
     report.UPLOAD = 'PASS';
   }
 
-  const previousRelease = await remote(profile, `readlink -f ${shellQuote(currentLink)} 2>/dev/null || true`, true);
+  const previousRelease = await remote(profile, `readlink -f ${shellQuote(appReleaseLink)} 2>/dev/null || true`, true);
   await remote(profile, [
     'set -eu', `ln -s ${shellQuote(finalRelease)} ${shellQuote(nextLink)}`,
     `mv -Tf ${shellQuote(nextLink)} ${shellQuote(currentLink)}`,
-    `touch ${shellQuote(`${appRoot}/tmp/restart.txt`)}`,
+    `ln -s ${shellQuote(currentLink)} ${shellQuote(appReleaseNext)}`,
+    `mv -Tf ${shellQuote(appReleaseNext)} ${shellQuote(appReleaseLink)}`,
   ].join('\n'));
+  await coldStartProductionApplication(profile);
   report['ACTIVATE RELEASE'] = 'PASS';
   report['PASSENGER RESTART'] = 'PASS';
 
   try {
-    const response = await run('curl', [
-      '--fail', '--silent', '--show-error', '--max-time', '30',
-      '--user', `${profile.FUCHA_PROD_BASIC_AUTH_USER}:${profile.FUCHA_PROD_BASIC_AUTH_PASSWORD}`,
-      `${profile.FUCHA_PROD_URL.replace(/\/$/, '')}/_fucha-release.json`,
-    ], { capture: true });
-    if (JSON.parse(response).commit !== commit) throw new Error('Smoke test received a different release SHA.');
+    await smokeHomepage(profile);
     report['SMOKE TEST'] = 'PASS';
     report.PRODUCTION = profile.FUCHA_PROD_URL;
   } catch (error) {
@@ -221,8 +281,8 @@ async function deployRelease(profile, commit, releaseDirectory) {
       await remote(profile, [
         'set -eu', `ln -s ${shellQuote(previousRelease)} ${shellQuote(nextLink)}`,
         `mv -Tf ${shellQuote(nextLink)} ${shellQuote(currentLink)}`,
-        `touch ${shellQuote(`${appRoot}/tmp/restart.txt`)}`,
       ].join('\n'));
+      await coldStartProductionApplication(profile);
       report['ACTIVATE RELEASE'] = 'ROLLED BACK';
       report['PASSENGER RESTART'] = 'ROLLED BACK';
     }
