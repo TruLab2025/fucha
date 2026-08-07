@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { access, mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
@@ -10,18 +10,22 @@ const root = process.cwd();
 const args = process.argv.slice(2);
 const dryRun = args.includes('--dry-run');
 const commitArgumentIndex = args.indexOf('--commit');
+const platformArgumentIndex = args.indexOf('--platform');
 const requestedCommit = commitArgumentIndex >= 0 ? args[commitArgumentIndex + 1] : null;
+const requestedPlatform = platformArgumentIndex >= 0 ? args[platformArgumentIndex + 1] : null;
 const profilePath = process.env.FUCHA_DEPLOY_PROFILE
   || path.join(os.homedir(), '.config', 'fucha24', 'production.env');
 
-if (commitArgumentIndex >= 0 && !requestedCommit) {
-  throw new Error('--commit requires a commit SHA or ref.');
-}
+if (commitArgumentIndex >= 0 && !requestedCommit) throw new Error('--commit requires a commit SHA or ref.');
+if (platformArgumentIndex >= 0 && !requestedPlatform) throw new Error('--platform requires a Docker platform, for example linux/arm64.');
+if (!dryRun && requestedPlatform) throw new Error('The production platform is detected from the cPanel host; --platform is only allowed with --dry-run.');
 
 const report = {
   COMMIT: 'PENDING',
-  BUILD: 'PENDING',
+  'BUILD PLATFORM': 'PENDING',
+  'DOCKER BUILD': 'PENDING',
   MIGRATIONS: 'PENDING',
+  'RELEASE ARTIFACT': 'PENDING',
   RELEASE: 'PENDING',
   UPLOAD: 'PENDING',
   'ACTIVATE RELEASE': 'PENDING',
@@ -33,22 +37,16 @@ const report = {
 
 function printReport() {
   console.log('\nDEPLOY REPORT');
-  for (const [label, value] of Object.entries(report)) {
-    console.log(`${label}: ${value}`);
-  }
+  for (const [label, value] of Object.entries(report)) console.log(`${label}: ${value}`);
 }
 
 function shellQuote(value) {
-  return `'${String(value).replaceAll("'", "'\\\"'\\\"'")}'`;
+  return `'${String(value).replaceAll("'", "'\"'\"'")}'`;
 }
 
 async function run(command, commandArgs, options = {}) {
   const { cwd = root, env = process.env, capture = false } = options;
-  const result = await execFileAsync(command, commandArgs, {
-    cwd,
-    env,
-    maxBuffer: 10 * 1024 * 1024,
-  });
+  const result = await execFileAsync(command, commandArgs, { cwd, env, maxBuffer: 10 * 1024 * 1024 });
   if (!capture && result.stdout) process.stdout.write(result.stdout);
   if (!capture && result.stderr) process.stderr.write(result.stderr);
   return result.stdout.trim();
@@ -57,21 +55,17 @@ async function run(command, commandArgs, options = {}) {
 async function loadProfile() {
   try {
     const text = await readFile(profilePath, 'utf8');
-    return Object.fromEntries(
-      text.split(/\r?\n/)
-        .map((line) => line.trim())
-        .filter((line) => line && !line.startsWith('#'))
-        .map((line) => {
-          const separator = line.indexOf('=');
-          if (separator < 1) throw new Error(`Invalid deployment profile line: ${line}`);
-          const key = line.slice(0, separator).trim();
-          let value = line.slice(separator + 1).trim();
-          if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-            value = value.slice(1, -1);
-          }
-          return [key, value];
-        }),
-    );
+    return Object.fromEntries(text.split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith('#'))
+      .map((line) => {
+        const separator = line.indexOf('=');
+        if (separator < 1) throw new Error(`Invalid deployment profile line: ${line}`);
+        const key = line.slice(0, separator).trim();
+        let value = line.slice(separator + 1).trim();
+        if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) value = value.slice(1, -1);
+        return [key, value];
+      }));
   } catch (error) {
     if (error.code === 'ENOENT') return {};
     throw error;
@@ -80,31 +74,20 @@ async function loadProfile() {
 
 function assertProductionProfile(profile) {
   const required = [
-    'FUCHA_PROD_SSH_HOST',
-    'FUCHA_PROD_SSH_USER',
-    'FUCHA_PROD_SSH_KEY',
-    'FUCHA_PROD_APP_ROOT',
-    'FUCHA_PROD_RELEASES_DIR',
-    'FUCHA_PROD_URL',
-    'FUCHA_PROD_BASIC_AUTH_USER',
-    'FUCHA_PROD_BASIC_AUTH_PASSWORD',
+    'FUCHA_PROD_SSH_HOST', 'FUCHA_PROD_SSH_USER', 'FUCHA_PROD_SSH_KEY',
+    'FUCHA_PROD_APP_ROOT', 'FUCHA_PROD_RELEASES_DIR', 'FUCHA_PROD_URL',
+    'FUCHA_PROD_BASIC_AUTH_USER', 'FUCHA_PROD_BASIC_AUTH_PASSWORD',
   ];
   const missing = required.filter((key) => !profile[key] || profile[key].includes('REPLACE_'));
-  if (missing.length) {
-    throw new Error(`Incomplete production profile ${profilePath}: ${missing.join(', ')}`);
-  }
+  if (missing.length) throw new Error(`Incomplete production profile ${profilePath}: ${missing.join(', ')}`);
 
   const prohibitedHosts = new Set(['localhost', '127.0.0.1', '::1', 'mini', '192.168.1.62']);
   if (prohibitedHosts.has(profile.FUCHA_PROD_SSH_HOST)) {
     throw new Error('Refusing a deployment target that could be this Mac mini or its control plane.');
   }
-  if (!/^https:\/\//.test(profile.FUCHA_PROD_URL)) {
-    throw new Error('FUCHA_PROD_URL must use https.');
-  }
+  if (!/^https:\/\//.test(profile.FUCHA_PROD_URL)) throw new Error('FUCHA_PROD_URL must use https.');
   for (const key of ['FUCHA_PROD_APP_ROOT', 'FUCHA_PROD_RELEASES_DIR']) {
-    if (!profile[key].startsWith('/')) {
-      throw new Error(`${key} must be an absolute production path.`);
-    }
+    if (!profile[key].startsWith('/')) throw new Error(`${key} must be an absolute production path.`);
   }
 }
 
@@ -112,8 +95,7 @@ function sshArguments(profile, remoteCommand) {
   return [
     '-i', profile.FUCHA_PROD_SSH_KEY,
     '-p', profile.FUCHA_PROD_SSH_PORT || '22',
-    '-o', 'BatchMode=yes',
-    '-o', 'StrictHostKeyChecking=yes',
+    '-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=yes',
     `${profile.FUCHA_PROD_SSH_USER}@${profile.FUCHA_PROD_SSH_HOST}`,
     remoteCommand,
   ];
@@ -124,64 +106,63 @@ async function remote(profile, command, capture = false) {
 }
 
 async function resolveCommit() {
-  const ref = requestedCommit || 'HEAD';
-  const commit = await run('git', ['rev-parse', '--verify', `${ref}^{commit}`], { capture: true });
+  const commit = await run('git', ['rev-parse', '--verify', `${requestedCommit || 'HEAD'}^{commit}`], { capture: true });
   const isOnMain = await execFileAsync('git', ['merge-base', '--is-ancestor', commit, 'origin/main'], { cwd: root })
     .then(() => true)
     .catch(() => false);
-  if (!isOnMain && !dryRun) {
-    throw new Error(`${commit} is not contained in origin/main; refusing a production release outside the approved branch.`);
-  }
+  if (!isOnMain && !dryRun) throw new Error(`${commit} is not contained in origin/main; refusing a production release outside the approved branch.`);
   return commit;
 }
 
 async function assertNoMigrations(commit) {
   const migrationFiles = await run('git', ['ls-tree', '-r', '--name-only', commit, '--', 'prisma/migrations'], { capture: true });
-  if (migrationFiles) {
-    throw new Error('This pipeline is intentionally migration-free until the Prisma baseline is separately approved.');
-  }
+  if (migrationFiles) throw new Error('This pipeline is intentionally migration-free until the Prisma baseline is separately approved.');
   report.MIGRATIONS = 'NONE';
 }
 
-async function buildRelease(commit) {
-  const temporaryRoot = await mkdtemp(path.join(os.tmpdir(), 'fucha24-release-'));
-  const worktree = path.join(temporaryRoot, 'worktree');
-
-  try {
-    await run('git', ['worktree', 'add', '--detach', worktree, commit]);
-    await run('npm', ['ci'], { cwd: worktree });
-    await run('npm', ['run', 'check'], { cwd: worktree });
-    await run('npm', ['run', 'build'], {
-      cwd: worktree,
-      env: {
-        ...process.env,
-        FUCHA_RELEASE_BUILD: '1',
-        FUCHA_RELEASE_COMMIT: commit,
-      },
-    });
-
-    const releaseDirectory = path.join(worktree, 'release');
-    const metadata = JSON.parse(await readFile(path.join(releaseDirectory, '.release.json'), 'utf8'));
-    if (metadata.commit !== commit) {
-      throw new Error(`Release metadata commit mismatch: expected ${commit}, got ${metadata.commit}.`);
-    }
-    await access(path.join(releaseDirectory, 'public', '_fucha-release.json'));
-    report.BUILD = 'PASS';
-    report.RELEASE = `PASS (${commit.slice(0, 7)})`;
-    return { temporaryRoot, worktree, releaseDirectory };
-  } catch (error) {
-    await removeWorktree(worktree, temporaryRoot);
-    throw error;
-  }
+function localDockerPlatform() {
+  if (process.arch === 'arm64') return 'linux/arm64';
+  if (process.arch === 'x64') return 'linux/amd64';
+  throw new Error(`Unsupported local CPU architecture for Docker build: ${process.arch}`);
 }
 
-async function removeWorktree(worktree, temporaryRoot) {
+async function detectProductionPlatform(profile) {
+  const architecture = await remote(profile, 'uname -m', true);
+  const platforms = { x86_64: 'linux/amd64', amd64: 'linux/amd64', aarch64: 'linux/arm64', arm64: 'linux/arm64' };
+  const platform = platforms[architecture];
+  if (!platform) throw new Error(`Unsupported production CPU architecture: ${architecture}`);
+  return platform;
+}
+
+async function buildRelease(commit, platform) {
+  const temporaryRoot = await mkdtemp(path.join(os.tmpdir(), 'fucha24-docker-release-'));
+  const contextDirectory = path.join(temporaryRoot, 'context');
+  const archivePath = path.join(temporaryRoot, 'source.tar');
+  const releaseDirectory = path.join(temporaryRoot, 'release');
+
   try {
-    await run('git', ['worktree', 'remove', '--force', worktree]);
-  } catch {
-    // The temporary directory is still removed below; the Git worktree was never a user checkout.
+    await mkdir(contextDirectory);
+    await run('git', ['archive', '--format=tar', '--output', archivePath, commit]);
+    await run('tar', ['-xf', archivePath, '-C', contextDirectory]);
+    await run('docker', [
+      'buildx', 'build', '--platform', platform,
+      '--build-arg', `FUCHA_RELEASE_COMMIT=${commit}`,
+      '--output', `type=local,dest=${releaseDirectory}`,
+      '--file', path.join(contextDirectory, 'Dockerfile.release'),
+      contextDirectory,
+    ]);
+
+    const metadata = JSON.parse(await readFile(path.join(releaseDirectory, '.release.json'), 'utf8'));
+    if (metadata.commit !== commit) throw new Error(`Release metadata commit mismatch: expected ${commit}, got ${metadata.commit}.`);
+    await readFile(path.join(releaseDirectory, 'public', '_fucha-release.json'));
+    report['DOCKER BUILD'] = 'PASS';
+    report['RELEASE ARTIFACT'] = `${releaseDirectory} (temporary; removed after upload or dry-run)`;
+    report.RELEASE = `PASS (${commit.slice(0, 7)})`;
+    return { temporaryRoot, releaseDirectory };
+  } catch (error) {
+    await rm(temporaryRoot, { recursive: true, force: true });
+    throw error;
   }
-  await rm(temporaryRoot, { recursive: true, force: true });
 }
 
 async function deployRelease(profile, commit, releaseDirectory) {
@@ -193,9 +174,7 @@ async function deployRelease(profile, commit, releaseDirectory) {
   const nextLink = `${releasesRoot}/.current-next-${process.pid}`;
 
   const preflight = [
-    'set -eu',
-    `test -d ${shellQuote(appRoot)}`,
-    `test -f ${shellQuote(`${appRoot}/server.js`)}`,
+    'set -eu', `test -d ${shellQuote(appRoot)}`, `test -f ${shellQuote(`${appRoot}/server.js`)}`,
     `mkdir -p ${shellQuote(`${appRoot}/tmp`)} ${shellQuote(releasesRoot)}`,
     `if test -e ${shellQuote(`${appRoot}/release`)} && test ! -L ${shellQuote(`${appRoot}/release`)}; then echo 'APP_ROOT/release must be a symlink' >&2; exit 1; fi`,
     `if test ! -L ${shellQuote(`${appRoot}/release`)}; then ln -s ${shellQuote(currentLink)} ${shellQuote(`${appRoot}/release`)}; fi`,
@@ -204,29 +183,23 @@ async function deployRelease(profile, commit, releaseDirectory) {
   const existingRelease = await remote(profile, preflight, true);
 
   if (existingRelease) {
-    const metadata = JSON.parse(existingRelease);
-    if (metadata.commit !== commit) {
-      throw new Error(`Production already has a conflicting release directory for ${commit}.`);
-    }
+    if (JSON.parse(existingRelease).commit !== commit) throw new Error(`Production already has a conflicting release directory for ${commit}.`);
     report.UPLOAD = `SKIPPED (release ${commit.slice(0, 7)} already present)`;
   } else {
     await remote(profile, `set -eu\ntest ! -e ${shellQuote(incomingRelease)}\nmkdir -p ${shellQuote(incomingRelease)}`);
     const transport = `ssh -i ${profile.FUCHA_PROD_SSH_KEY} -p ${profile.FUCHA_PROD_SSH_PORT || '22'} -o BatchMode=yes -o StrictHostKeyChecking=yes`;
     await run('rsync', ['-az', '--delete', '-e', transport, `${releaseDirectory}/`, `${profile.FUCHA_PROD_SSH_USER}@${profile.FUCHA_PROD_SSH_HOST}:${incomingRelease}/`]);
     await remote(profile, [
-      'set -eu',
-      `test -f ${shellQuote(`${incomingRelease}/.release.json`)}`,
+      'set -eu', `test -f ${shellQuote(`${incomingRelease}/.release.json`)}`,
       `grep -F ${shellQuote(`"commit": "${commit}"`)} ${shellQuote(`${incomingRelease}/.release.json`)}`,
-      `test ! -e ${shellQuote(finalRelease)}`,
-      `mv ${shellQuote(incomingRelease)} ${shellQuote(finalRelease)}`,
+      `test ! -e ${shellQuote(finalRelease)}`, `mv ${shellQuote(incomingRelease)} ${shellQuote(finalRelease)}`,
     ].join('\n'));
     report.UPLOAD = 'PASS';
   }
 
   const previousRelease = await remote(profile, `readlink -f ${shellQuote(currentLink)} 2>/dev/null || true`, true);
   await remote(profile, [
-    'set -eu',
-    `ln -s ${shellQuote(finalRelease)} ${shellQuote(nextLink)}`,
+    'set -eu', `ln -s ${shellQuote(finalRelease)} ${shellQuote(nextLink)}`,
     `mv -Tf ${shellQuote(nextLink)} ${shellQuote(currentLink)}`,
     `touch ${shellQuote(`${appRoot}/tmp/restart.txt`)}`,
   ].join('\n'));
@@ -239,18 +212,14 @@ async function deployRelease(profile, commit, releaseDirectory) {
       '--user', `${profile.FUCHA_PROD_BASIC_AUTH_USER}:${profile.FUCHA_PROD_BASIC_AUTH_PASSWORD}`,
       `${profile.FUCHA_PROD_URL.replace(/\/$/, '')}/_fucha-release.json`,
     ], { capture: true });
-    const metadata = JSON.parse(response);
-    if (metadata.commit !== commit) {
-      throw new Error(`Smoke test received commit ${metadata.commit || 'missing'} instead of ${commit}.`);
-    }
+    if (JSON.parse(response).commit !== commit) throw new Error('Smoke test received a different release SHA.');
     report['SMOKE TEST'] = 'PASS';
     report.PRODUCTION = profile.FUCHA_PROD_URL;
   } catch (error) {
     report['SMOKE TEST'] = `FAIL (${error.message})`;
     if (previousRelease) {
       await remote(profile, [
-        'set -eu',
-        `ln -s ${shellQuote(previousRelease)} ${shellQuote(nextLink)}`,
+        'set -eu', `ln -s ${shellQuote(previousRelease)} ${shellQuote(nextLink)}`,
         `mv -Tf ${shellQuote(nextLink)} ${shellQuote(currentLink)}`,
         `touch ${shellQuote(`${appRoot}/tmp/restart.txt`)}`,
       ].join('\n'));
@@ -266,7 +235,11 @@ try {
   const commit = await resolveCommit();
   report.COMMIT = commit;
   await assertNoMigrations(commit);
-  builtRelease = await buildRelease(commit);
+  const profile = dryRun ? null : await loadProfile();
+  if (profile) assertProductionProfile(profile);
+  const platform = dryRun ? (requestedPlatform || localDockerPlatform()) : await detectProductionPlatform(profile);
+  report['BUILD PLATFORM'] = platform;
+  builtRelease = await buildRelease(commit, platform);
 
   if (dryRun) {
     report.UPLOAD = 'SKIPPED (--dry-run; no production connection attempted)';
@@ -274,10 +247,8 @@ try {
     report['PASSENGER RESTART'] = 'SKIPPED';
     report['SMOKE TEST'] = 'SKIPPED';
     report.PRODUCTION = 'NOT CONTACTED';
-    report.RESULT = 'PASS (LOCAL PREFLIGHT)';
+    report.RESULT = 'PASS (LOCAL DOCKER PREFLIGHT)';
   } else {
-    const profile = await loadProfile();
-    assertProductionProfile(profile);
     await deployRelease(profile, commit, builtRelease.releaseDirectory);
     report.RESULT = 'PASS';
   }
@@ -285,8 +256,6 @@ try {
   report.RESULT = `FAIL (${error.message})`;
   process.exitCode = 1;
 } finally {
-  if (builtRelease) {
-    await removeWorktree(builtRelease.worktree, builtRelease.temporaryRoot);
-  }
+  if (builtRelease) await rm(builtRelease.temporaryRoot, { recursive: true, force: true });
   printReport();
 }

@@ -1,0 +1,11 @@
+.git
+.next
+release
+node_modules
+.fucha
+docker-data
+.env
+.env.*
+.vscode
+coverage
+*.tsbuildinfo

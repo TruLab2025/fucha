@@ -2,7 +2,7 @@
 
 ## Zasada
 
-`main` i commit SHA są źródłem prawdy. Development korzysta z hostowego `next dev` oraz lokalnej MariaDB w Dockerze. Release build **nigdy** nie korzysta z checkoutu, w którym działa development, ani z jego katalogu `.next`.
+`main` i commit SHA są źródłem prawdy. Development korzysta z hostowego `next dev` oraz lokalnej MariaDB w Dockerze. Release build powstaje wyłącznie w Dockerze na Mac mini, z czystego `git archive` wskazanego SHA. Nie montuje checkoutu developmentu, jego `.next` ani lokalnej bazy.
 
 Produkcja otrzymuje gotowy release Next standalone. cPanel/Passenger nie uruchamia `npm ci`, `next build` ani migracji podczas startu aplikacji.
 
@@ -45,23 +45,26 @@ npm run deploy:production -- --commit COMMIT_SHA
 Pipeline:
 
 1. Rozwiązuje commit SHA i wymaga, aby był zawarty w `origin/main`.
-2. Tworzy tymczasowy, odłączony Git worktree tego SHA.
-3. W worktree wykonuje `npm ci`, `npm run check` i produkcyjny build.
-4. Zapisuje release standalone z metadanymi SHA w `.release.json` oraz `public/_fucha-release.json`.
-5. Wysyła release do osobnego `releases/.<sha>.incoming-*`.
-6. Weryfikuje metadane, zmienia katalog na `releases/<sha>` i atomowo przełącza `releases/current`.
-7. Restartuje Passenger przez `touch tmp/restart.txt`.
-8. Wykonuje Basic-Auth smoke test pliku `_fucha-release.json` i wymaga zgodności SHA.
+2. Tworzy czysty kontekst Docker z `git archive` tego SHA; niezatwierdzone lokalne pliki nie mogą wejść do builda.
+3. Odczytowo sprawdza `uname -m` na serwerze i wybiera zgodną platformę Docker (`linux/amd64` albo `linux/arm64`).
+4. W Dockerze Node 22 wykonuje `npm ci`, TypeScript check i produkcyjny build.
+5. Zapisuje release standalone z metadanymi SHA w `.release.json` oraz `public/_fucha-release.json`.
+6. Wysyła release do osobnego `releases/.<sha>.incoming-*`.
+7. Weryfikuje metadane, zmienia katalog na `releases/<sha>` i atomowo przełącza `releases/current`.
+8. Restartuje Passenger przez `touch tmp/restart.txt`.
+9. Wykonuje Basic-Auth smoke test pliku `_fucha-release.json` i wymaga zgodności SHA.
 
 W razie nieudanego smoke testu pipeline przełącza poprzedni `current` i ponownie restartuje Passenger. Release'y nie są automatycznie usuwane przez pierwszą wersję pipeline'u.
 
 ## Test lokalny pipeline'u
 
-Poniższa komenda wykonuje pełny clean build i walidację artefaktu, ale nie odczytuje profilu, nie łączy się z produkcją i niczego nie wdraża:
+Poniższa komenda wykonuje pełny clean Docker build dla lokalnej architektury i walidację artefaktu, ale nie odczytuje profilu, nie łączy się z produkcją i niczego nie wdraża:
 
 ```bash
 npm run deploy:production -- --dry-run
 ```
+
+Do testu innej platformy można jawnie użyć `--platform linux/amd64` albo `--platform linux/arm64`. Właściwy deploy nigdy nie przyjmuje platformy w argumencie: odczytuje ją z cPanel przed buildem.
 
 ## Migracje
 
