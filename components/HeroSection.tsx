@@ -15,7 +15,7 @@ export default function HeroSection() {
           </span>
           <h1 className="mt-6 text-[2.75rem] font-black leading-[0.98] tracking-[-0.06em] sm:text-6xl lg:text-7xl">
             Masz wolny termin?
-            <span className="mt-2 block text-primary">Ktoś ma dla Ciebie fuchę.</span>
+            <span className="mt-2 block text-primary">Czeka na Ciebie fucha!</span>
           </h1>
           <p className="mt-7 max-w-xl text-lg leading-8 text-muted sm:text-xl sm:leading-9">
             Dodaj swoją dostępność i pokaż się firmom z okolicy. Albo znajdź osobę gotową wskoczyć do pracy — bez kont, CV i długiej rekrutacji.
