@@ -1,6 +1,15 @@
 import { access, cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { execFile } from 'node:child_process';
 import path from 'node:path';
 import process from 'node:process';
+import { promisify } from 'node:util';
+
+const execFileAsync = promisify(execFile);
+
+if (process.env.FUCHA_RELEASE_BUILD !== '1') {
+  throw new Error('Refusing to create a release in the active checkout. Use npm run deploy:production.');
+}
 
 const root = process.cwd();
 const standalone = path.join(root, '.next', 'standalone');
@@ -35,9 +44,26 @@ if (await exists(staticAssets)) {
 }
 
 const buildId = await readFile(path.join(root, '.next', 'BUILD_ID'), 'utf8');
+const commit = process.env.FUCHA_RELEASE_COMMIT
+  || (await execFileAsync('git', ['rev-parse', 'HEAD'], { cwd: root })).stdout.trim();
+const packageLock = await readFile(path.join(root, 'package-lock.json'));
+const releaseMetadata = {
+  commit,
+  buildId: buildId.trim(),
+  node: process.version,
+  packageLockSha256: createHash('sha256').update(packageLock).digest('hex'),
+  builtAt: new Date().toISOString(),
+};
+
 await writeFile(
   path.join(release, '.release.json'),
-  `${JSON.stringify({ buildId: buildId.trim(), builtAt: new Date().toISOString() }, null, 2)}\n`,
+  `${JSON.stringify(releaseMetadata, null, 2)}\n`,
+);
+
+await mkdir(path.join(release, 'public'), { recursive: true });
+await writeFile(
+  path.join(release, 'public', '_fucha-release.json'),
+  `${JSON.stringify(releaseMetadata, null, 2)}\n`,
 );
 
 console.log('Production release prepared in ./release');

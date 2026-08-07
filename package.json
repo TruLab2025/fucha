@@ -4,12 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "postbuild": "node scripts/prepare-release.mjs",
+    "build": "node scripts/build-production.mjs",
     "start": "node server.js",
     "start:release": "node server.js",
     "check": "tsc --noEmit",
-    "lint": "next lint"
+    "lint": "next lint",
+    "deploy:production": "node scripts/deploy-production.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.0.0",

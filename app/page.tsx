@@ -10,6 +10,10 @@ import { getListings } from '../lib/db';
 import Link from 'next/link';
 import Icon from '../components/Icon';
 
+// The homepage reads listings at request time. A release build must not depend
+// on development database contents or embed them into the production artifact.
+export const dynamic = 'force-dynamic';
+
 export default async function HomePage() {
   const latestWorkerJobs = (await getListings({ type: 'worker' })).slice(0, 3);
 

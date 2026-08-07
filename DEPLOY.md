@@ -1,99 +1,76 @@
-# Fucha24 — deployment demonstracyjny (cPanel + Passenger)
+# Fucha24 — release pipeline (Mac mini → cPanel Passenger)
 
 ## Zasada
 
-Build wykonujemy wyłącznie lokalnie. Serwer otrzymuje gotowy katalog `release/` przez SSH i nigdy nie uruchamia `npm install`, `npm ci` ani `npm run build`.
+`main` i commit SHA są źródłem prawdy. Development korzysta z hostowego `next dev` oraz lokalnej MariaDB w Dockerze. Release build **nigdy** nie korzysta z checkoutu, w którym działa development, ani z jego katalogu `.next`.
 
-## Wymagania jednorazowe na serwerze
+Produkcja otrzymuje gotowy release Next standalone. cPanel/Passenger nie uruchamia `npm ci`, `next build` ani migracji podczas startu aplikacji.
 
-- Aplikacja Node.js w cPanel wskazuje `~/repositories/Fucha24` jako Application root i `server.js` jako Startup file.
-- Node.js ma wersję 22.
-- W katalogu repozytorium istnieje nieśledzony przez Git plik `.env.production` z danymi MariaDB i SMTP.
-- Katalog `~/releases/fucha24` istnieje i należy do użytkownika cPanel.
-- Katalog `~/repositories/Fucha24/tmp` istnieje. Passenger używa pliku `tmp/restart.txt` do restartu.
+## Codzienna praca
 
-Przed pierwszym `git pull` przenieś ręcznie wcześniej utworzony na serwerze `server.js` do kopii zapasowej. Od tej wersji `server.js` jest śledzony w repo i uruchamia gotowy release.
+1. Zmiana kodu jest od razu widoczna przez Next dev/hot reload.
+2. Dla copy wystarcza szybkie potwierdzenie tekstu na stronie.
+3. Codex commituję i wypycha wyłącznie zmianę źródłową.
+4. To nie uruchamia release builda ani deployu.
 
-Przykładowy plik `.env.production` na serwerze:
+`npm run build` jest celowo zablokowane poza izolowanym pipeline'em. Chroni to działający dev server przed nadpisaniem `.next`.
 
-```env
-LISTINGS_STORAGE=mysql
-MYSQL_HOST=...
-MYSQL_PORT=3306
-MYSQL_DATABASE=...
-MYSQL_USER=...
-MYSQL_PASSWORD=...
-NEXT_PUBLIC_APP_URL=https://app.fucha24.pl
-```
+## Jednorazowa konfiguracja produkcji
 
-Nie kopiuj `.env.production` do `release/` ani do GitHub.
+Na Mac mini utwórz plik `~/.config/fucha24/production.env` z prawami `0600`, kopiując [config/production.env.example](config/production.env.example). Wartości są lokalnymi sekretami i nie trafiają do Git.
 
-## Pierwsze przygotowanie release na serwerze
+W cPanel jednorazowo:
 
-Po pierwszym `git pull` wykonaj jednorazowo:
+- autoryzuj publiczny klucz `/Users/mini/.ssh/id_ed25519.pub` dla wskazanego konta;
+- ustaw Node.js 22, Application root na `FUCHA_PROD_APP_ROOT` i Startup file na `server.js`;
+- utrzymaj w Application root nieśledzony `.env.production`;
+- upewnij się, że `server.js` z repo jest obecny oraz że katalog `tmp/` jest zapisywalny.
 
-```bash
-mkdir -p ~/releases/fucha24
-mkdir -p ~/repositories/Fucha24/tmp
-ln -sfn ~/releases/fucha24/current ~/repositories/Fucha24/release
-```
+`server.js` jest stałym launcherem Passenger. Ładuje lokalny `.env.production`, a następnie uruchamia `release/server.js`, gdzie `release` jest symlinkiem do `releases/current`.
 
-Symlink `release` jest ignorowany przez Git. `current` będzie wskazywał na aktualnie wdrożony release.
+## Deploy
 
-## Proces lokalny
-
-Używaj Node.js 22, zgodnego z serwerem:
+Po świadomej decyzji o wdrożeniu uruchamiany jest wyłącznie:
 
 ```bash
-nvm use
-git pull --ff-only
-npm ci
-npm run check
-npm run build
+npm run deploy:production
 ```
 
-`npm run build` tworzy kompletny katalog `release/` z Next standalone, plikami `public` i `.next/static`.
-
-Następnie zatwierdź oraz wypchnij wyłącznie kod źródłowy:
+Opcjonalnie można wskazać zatwierdzony commit z `origin/main`:
 
 ```bash
-git add .
-git commit -m "Opis zmiany"
-git push
+npm run deploy:production -- --commit COMMIT_SHA
 ```
 
-## Wysłanie gotowego release z Maca
+Pipeline:
 
-Ustal wartości `CPANEL_USER`, `SERVER_HOST` i identyfikator commita. Przykład:
+1. Rozwiązuje commit SHA i wymaga, aby był zawarty w `origin/main`.
+2. Tworzy tymczasowy, odłączony Git worktree tego SHA.
+3. W worktree wykonuje `npm ci`, `npm run check` i produkcyjny build.
+4. Zapisuje release standalone z metadanymi SHA w `.release.json` oraz `public/_fucha-release.json`.
+5. Wysyła release do osobnego `releases/.<sha>.incoming-*`.
+6. Weryfikuje metadane, zmienia katalog na `releases/<sha>` i atomowo przełącza `releases/current`.
+7. Restartuje Passenger przez `touch tmp/restart.txt`.
+8. Wykonuje Basic-Auth smoke test pliku `_fucha-release.json` i wymaga zgodności SHA.
+
+W razie nieudanego smoke testu pipeline przełącza poprzedni `current` i ponownie restartuje Passenger. Release'y nie są automatycznie usuwane przez pierwszą wersję pipeline'u.
+
+## Test lokalny pipeline'u
+
+Poniższa komenda wykonuje pełny clean build i walidację artefaktu, ale nie odczytuje profilu, nie łączy się z produkcją i niczego nie wdraża:
 
 ```bash
-git rev-parse --short HEAD
-rsync -az --delete ./release/ CPANEL_USER@SERVER_HOST:~/releases/fucha24/COMMIT_SHA/
-ssh CPANEL_USER@SERVER_HOST "ln -sfn ~/releases/fucha24/COMMIT_SHA ~/releases/fucha24/current"
+npm run deploy:production -- --dry-run
 ```
 
-Upload odbywa się z Maca. Serwer tylko zapisuje gotowe pliki; niczego nie buduje ani nie instaluje.
+## Migracje
 
-## Czynności na serwerze po każdym deployu
+Obecna wersja pipeline'u jest świadomie przeznaczona wyłącznie dla deployów bez migracji DB. Jeśli w commicie pojawi się `prisma/migrations`, deploy zatrzyma się przed połączeniem z produkcją.
 
-```bash
-cd ~/repositories/Fucha24
-git pull --ff-only
-touch tmp/restart.txt
-```
-
-Alternatywnie użyj przycisku Restart w cPanel Node.js Application.
+Prisma baseline i `prisma migrate deploy` zostaną dodane osobno, po świadomej decyzji. Pipeline nigdy nie użyje `prisma db push`, resetu ani migracji podczas startu Passenger.
 
 ## Rollback
 
-Wskaż `current` na wcześniejszy katalog release i zrestartuj Passenger:
+Pipeline wykonuje rollback automatycznie po błędzie smoke testu. Ręczny rollback to przełączenie `releases/current` na poprzedni release i `touch tmp/restart.txt`.
 
-```bash
-ln -sfn ~/releases/fucha24/POPRZEDNI_COMMIT ~/releases/fucha24/current
-cd ~/repositories/Fucha24
-touch tmp/restart.txt
-```
-
-## Zmiany bazy danych
-
-Migracje wykonujemy świadomie z lokalnego komputera, po połączeniu ze zdalną MariaDB. Nie uruchamiamy migracji podczas startu Passenger.
+Rollback kodu nie cofa schematu DB; dlatego przyszłe migracje muszą być kompatybilne wstecz albo mieć osobną, zatwierdzoną procedurę.
