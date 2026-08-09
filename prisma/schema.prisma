@@ -1,0 +1,76 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model listing_contacts {
+  listing_id          String                              @id @db.VarChar(36)
+  phone               String                              @db.VarChar(32)
+  email               String                              @db.VarChar(255)
+  contact_preference  listing_contacts_contact_preference @default(both)
+  verified_at         DateTime?                           @db.DateTime(0)
+  consent_version     String?                             @db.VarChar(32)
+  consent_accepted_at DateTime?                           @db.DateTime(0)
+  created_at          DateTime                            @db.DateTime(0)
+  listings            listings                            @relation(fields: [listing_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "fk_listing_contacts_listing")
+
+  @@index([email], map: "idx_listing_contacts_email")
+}
+
+model listings {
+  id                String                      @id @db.VarChar(36)
+  type              listings_type?
+  title             String?                     @db.VarChar(255)
+  description       String                      @db.Text
+  created_at        DateTime                    @db.DateTime(0)
+  expires_at        DateTime?                   @db.DateTime(0)
+  status            listings_status             @default(active)
+  province          String?                     @db.VarChar(120)
+  city              String?                     @db.VarChar(120)
+  category          String?                     @db.VarChar(120)
+  availability_mode listings_availability_mode?
+  available_date    DateTime?                   @db.Date
+  available_to      DateTime?                   @db.Date
+  available_hours   String?                     @db.VarChar(32)
+  rate_type         listings_rate_type?
+  rate              String?                     @db.VarChar(64)
+  company_name      String?                     @db.VarChar(255)
+  job_title         String?                     @db.VarChar(255)
+  skills_required   String?                     @db.Text
+  experience_level  String?                     @db.VarChar(120)
+  salary_min        String?                     @db.VarChar(64)
+  salary_max        String?                     @db.VarChar(64)
+  listing_contacts  listing_contacts?
+
+  @@index([category], map: "idx_listings_category")
+  @@index([expires_at, status], map: "idx_listings_expiration")
+  @@index([province, city], map: "idx_listings_location")
+  @@index([type], map: "idx_listings_type")
+}
+
+enum listings_type {
+  worker
+  employer
+}
+
+enum listing_contacts_contact_preference {
+  phone
+  email
+  both
+}
+
+enum listings_status {
+  active
+  expired
+  deleted
+}
+
+enum listings_availability_mode {
+  single
+  range
+}
+
+enum listings_rate_type {
+  hourly
+  daily
+}

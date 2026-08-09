@@ -1,3 +1,7 @@
+-- LEGACY / DEPRECATED REFERENCE ONLY
+-- Canonical schema history: prisma/schema.prisma and prisma/migrations/.
+-- Do not apply this file to local, staging, or production databases.
+
 CREATE TABLE IF NOT EXISTS listings (
   id VARCHAR(36) NOT NULL PRIMARY KEY,
   type ENUM('worker', 'employer') NULL,

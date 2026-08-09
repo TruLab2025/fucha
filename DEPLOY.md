@@ -54,7 +54,7 @@ Opcjonalnie można wskazać zatwierdzony commit z `origin/main`:
 npm run deploy:production -- --commit COMMIT_SHA
 ```
 
-Każdy deploy produkcyjny wymaga jawnego tekstu oczekiwanego na homepage. Opcjonalnie można również odrzucić poprzednie copy:
+Teksty smoke testu są opcjonalne. Gdy są podane, pipeline wymaga obecności nowego tekstu i/lub braku starego:
 
 ```bash
 npm run deploy:production -- --commit COMMIT_SHA \
@@ -62,19 +62,18 @@ npm run deploy:production -- --commit COMMIT_SHA \
   --reject-text 'POPRZEDNI TEKST'
 ```
 
-Pipeline:
+Pipeline jest deterministyczny i wykonuje dokładnie:
 
-1. Rozwiązuje commit SHA i wymaga, aby był zawarty w `origin/main`.
-2. Tworzy czysty kontekst Docker z `git archive` tego SHA; niezatwierdzone lokalne pliki nie mogą wejść do builda.
-3. Odczytowo sprawdza `uname -m` na serwerze i wybiera zgodną platformę Docker (`linux/amd64` albo `linux/arm64`).
-4. W Dockerze Node 22 wykonuje `npm ci`, TypeScript check i produkcyjny build.
-5. Zapisuje release standalone z metadanymi SHA w `.release.json` oraz `public/_fucha-release.json`.
-6. Wysyła release do osobnego `releases/.<sha>.incoming-*`.
-7. Weryfikuje metadane, zmienia katalog na `releases/<sha>` i atomowo przełącza `releases/current`.
-8. Wykonuje cold start aplikacji przez CloudLinux Node Selector.
-9. Wykonuje Basic-Auth smoke test rzeczywistego homepage i wymaga oczekiwanego copy.
+1. PRECHECK — zatwierdzony SHA, konfiguracja i stan symlinków.
+2. BUILD — izolowany Docker build z `git archive` SHA.
+3. PRISMA — tymczasowy tunel SSH, status i kontrola historii. Przy pending migrations pipeline tworzy dump w `/Users/mini/Backups/Fucha24`, wykonuje `prisma migrate deploy`, a potem wymaga aktualnego statusu i pustego diffu. Bez pending migrations backup i migracja są pomijane.
+4. UPLOAD — istniejący katalog `releases/<sha>` jest ponownie używany wyłącznie po walidacji `.release.json`, `server.js`, `.next` i `.next/static`; uszkodzony release kończy deploy przed aktywacją.
+5. ACTIVATE — atomowo przełącza `releases/current` i `APP_ROOT/release` na ten sam release.
+6. TERMINATE OLD RELEASE PROCESSES — wyłącznie procesy, których fizyczny `/proc/<pid>/cwd` nadal jest dokładnie poprzednim katalogiem release.
+7. COLD START — CloudLinux Node Selector dla istniejącego `APP_ROOT`, bez `tmp/restart.txt`.
+8. HTTPS SMOKE i VERIFY PROCESS CWD.
 
-W razie nieudanego smoke testu pipeline przełącza poprzedni `current` i ponownie restartuje Passenger. Release'y nie są automatycznie usuwane przez pierwszą wersję pipeline'u.
+Pipeline nie wykonuje automatycznego rollbacku ani dodatkowej diagnostyki. Kończy się jednoznacznie `RESULT: FAIL`, ze `STAGE` i `REASON`; osobne zadanie diagnozuje błąd. Release'y nie są automatycznie usuwane.
 
 ## Test lokalny pipeline'u
 
@@ -86,14 +85,18 @@ npm run deploy:production -- --dry-run
 
 Do testu innej platformy można jawnie użyć `--platform linux/amd64` albo `--platform linux/arm64`. Właściwy deploy nigdy nie przyjmuje platformy w argumencie: odczytuje ją z cPanel przed buildem.
 
+Bez Docker i bez kontaktu z produkcją można sprawdzić dokładne dopasowanie procesów po CWD:
+
+```bash
+node scripts/deploy-production.mjs --self-test
+```
+
 ## Migracje
 
-Obecna wersja pipeline'u jest świadomie przeznaczona wyłącznie dla deployów bez migracji DB. Jeśli w commicie pojawi się `prisma/migrations`, deploy zatrzyma się przed połączeniem z produkcją.
-
-Prisma baseline i `prisma migrate deploy` zostaną dodane osobno, po świadomej decyzji. Pipeline nigdy nie użyje `prisma db push`, resetu ani migracji podczas startu Passenger.
+Prisma migrations są obsługiwane przed aktywacją release'u. Pipeline nigdy nie używa `prisma db push`, resetu ani migracji podczas startu Passenger.
 
 ## Rollback
 
-Pipeline wykonuje rollback automatycznie po błędzie smoke testu. Ręczny rollback to przełączenie `releases/current` na poprzedni release i cold start aplikacji przez CloudLinux Node Selector.
+Rollback jest świadomą, osobną operacją: przełączenie `releases/current` na poprzedni release i cold start aplikacji przez CloudLinux Node Selector.
 
 Rollback kodu nie cofa schematu DB; dlatego przyszłe migracje muszą być kompatybilne wstecz albo mieć osobną, zatwierdzoną procedurę.
